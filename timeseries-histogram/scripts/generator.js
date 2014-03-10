@@ -217,8 +217,8 @@ var Histogram;
 				binWidth = ( max - min ) / ( numEdges - 1 );
 
 				edges[ 0 ] = min;
-				for ( var i = 1; i < numEdges - 1; i++ ) {
-					edges[ i ] = min + ( binWidth*i );
+				for ( var j = 1; j < numEdges - 1; j++ ) {
+					edges[ j ] = min + ( binWidth*j );
 				} // end FOR i
 
 				edges[ numEdges - 1 ] = max + 1e-16; // inclusive edge

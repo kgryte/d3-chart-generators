@@ -78,14 +78,14 @@
 
 		var data = [],
 			numSeries = 100,
-			seriesLength = 299,
+			seriesLength = 300,
 			increment = 2000, // milliseconds
 			means = [0.3, 0.5, 0.7],
 			now = Date.now();
 
 		for ( var j = 0; j < numSeries; j++ ) {
 			data[ j ] = [];
-			for ( var i = seriesLength; i >= 0; i-- ) {
+			for ( var i = seriesLength - 1; i >= 0; i-- ) {
 				data[ j ].push(
 					[
 						new Date( now - i*increment ),
