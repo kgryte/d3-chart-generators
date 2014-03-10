@@ -24,35 +24,37 @@ body {
 	height: 400px;
 }
 
-.graph[data-graph-type="timeseries-histogram"] .axis path {
+.chart .canvas {
+	position: absolute;
+	left: 0;
+	top: 0;
+}
+
+.axes[data-graph-type="timeseries-heatmap"] .axis path {
 	fill: none;
 }
 
-.graph[data-graph-type="timeseries-histogram"] .y.axis path {
+.axes[data-graph-type="timeseries-heatmap"] .y.axis path {
 	stroke: none;
 }
 
-.graph[data-graph-type="timeseries-histogram"] .x.axis path {
+.axes[data-graph-type="timeseries-heatmap"] .x.axis path {
 	stroke: #aaa;
 	stroke-width: 1px;
 }
 
-.graph[data-graph-type="timeseries-histogram"] .axis line {
+.axes[data-graph-type="timeseries-heatmap"] .axis line {
 	stroke: #aaa;
 	stroke-width: 1px;
 }
 
-.graph[data-graph-type="timeseries-histogram"] .background {
-	fill: none;
-	stroke: none;
+.graph[data-graph-type="timeseries-heatmap"] {
+	position: absolute;
+	left: 0;
+	top: 0;
 }
 
-.graph[data-graph-type="timeseries-histogram"] .bin {
-	fill: #474747;
-	stroke: none;
-}
-
-.meta[data-graph-type="timeseries-histogram"] .title {
+.meta[data-graph-type="timeseries-heatmap"] .title {
 	display: block;
 	font-size: 2em;
 	line-height: 2em;
