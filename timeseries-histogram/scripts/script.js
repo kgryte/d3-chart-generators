@@ -11,6 +11,8 @@
 
 		width, height,
 
+		labels,
+
 		minEdge, maxEdge, binWidth, numEdges, edges = [];
 
 
@@ -46,6 +48,9 @@
 		.value( function ( d ) { return d[ 1 ]; })
 		.edges( edges )
 		.sort( 'descending' )
+		.labels( d3.range( 0, 100 ).map( function ( id ) {
+			return 'timeseries' + id;
+		}) )
 		.title( 'Timeseries Histogram' );
 
 	// Bind data to the chart and generate the histogram...

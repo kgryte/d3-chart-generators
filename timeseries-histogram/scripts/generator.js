@@ -510,8 +510,6 @@ var Histogram;
 
 			// Create the histogram element:
 			_histogram = _graph.append( 'svg:g' )
-				.attr( 'property', 'histogram' )
-				.attr( 'class', 'histogram' )
 				.attr( 'clip-path', 'url(#' + _clipPath.attr( 'id' ) + ')' )
 				.attr( 'transform', 'translate( ' + 0 + ', ' + 0 + ')' );
 
@@ -520,7 +518,9 @@ var Histogram;
 				.data( data )
 			  .enter().append( 'svg:g' )
 				.attr( 'property', 'marks' )
-				.attr( 'class', 'marks' );
+				.attr( 'class', 'marks' )
+				.attr( 'data-label', function( d, i ) { return labels[ i ];
+				});
 
 			// Add bins:
 			_bins = _marks.selectAll( '.bin' )
