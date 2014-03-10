@@ -235,11 +235,11 @@ var Histogram;
 				// Augment counts to include the edge and binWidth (binWidth is needed in the event of variable bin width ):
 				counts = counts.map( function ( d, i ) {
 					return [
-						edges[ i-1 ],
-						id,
-						edges[ i ] - edges[ i-1 ],
-						1,
-						counts[ i ]
+						edges[ i-1 ], // x
+						id, // y
+						edges[ i ] - edges[ i-1 ], // width
+						1, // height
+						counts[ i ] // color
 					];
 				});
 
