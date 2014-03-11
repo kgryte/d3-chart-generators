@@ -67,11 +67,6 @@ var Heatmap;
 			width = 600,
 			height = width / 1.61803398875, // Golden Ratio
 
-			grid = {
-				'x': 49,
-				'y': 10
-			},
-
 			// LABELS:
 			title = '',
 
@@ -81,9 +76,10 @@ var Heatmap;
 			// SCALES:
 			xScale = d3.time.scale(),
 			yScale = d3.scale.linear(),
-			colorScale = d3.scale.linear(),
 
-			xMin, xMax, yMin, yMax,
+			zScale = d3.scale.linear(),
+
+			xMin, xMax, yMin, yMax, zMin, zMax,
 
 			// AXES:
 			xTickFormat = d3.time.format( '%M' ),
@@ -91,15 +87,22 @@ var Heatmap;
 			xNumTicks,
 			yNumTicks,
 
-			_xAxis = d3.svg.axis().scale( xScale ).orient( 'bottom' ).tickFormat( xTickFormat ).ticks( xNumTicks ),
-			_yAxis = d3.svg.axis().scale( yScale ).orient( 'left' ).ticks( yNumTicks ),
+			xAxisOrient = 'bottom',
+			yAxisOrient = 'left',
+
+			_xAxis = d3.svg.axis().scale( xScale ).orient( xAxisOrient ).tickFormat( xTickFormat ).ticks( xNumTicks ),
+			_yAxis = d3.svg.axis().scale( yScale ).orient( yAxisOrient ).ticks( yNumTicks ),
 
 			// ACCESSORS:
 			xValue = function( d ) { return d[ 0 ]; },
 			yValue = function( d ) { return d[ 1 ]; },
 
+			// DATA:
+			xEdges = [],
+			yEdges = [],
+
 			// ELEMENTS:
-			_canvas, _axes, _graph, _heatmap, _meta, _title, _marks;
+			_canvas, _clipPath, _background, _axes, _graph, _heatmap, _meta, _title, _marks, _bins;
 
 			// PUBLIC: OBJECT //
 
@@ -110,14 +113,20 @@ var Heatmap;
 
 			selection.each( function ( data ) {
 
+				// Standardize the data:
+				data = formatData( data );
+
 				// Get the data domains:
 				getDomains( data );
 
 				// Create the chart base:
 				createBase( this );
 
+				// Create the chart background:
+				createBackground();
+
 				// Create the heatmap:
-				createHeatmap();
+				createHeatmap( data );
 
 				// Create the axes:
 				createAxes();
@@ -132,54 +141,217 @@ var Heatmap;
 
 		// PRIVATE: METHODS //
 
-		function getDomains( data ) {
+		function formatData( data ) {
 
-			var xDomain, yDomain, _xMin, _xMax, _yMin, _yMax;
+			var xNumEdges = 100, yNumEdges = 100, min, max;
 
-			if ( !xMin && xMin !== 0 ) {
-				_xMin = d3.min( data, function ( dataset ) {
+			// Convert data to standard representation; needed for non-deterministic accessors:
+			data = d3.range( data.length ).map( function ( id ) {
+				return data[ id ].map( function ( d, i ) {
+					return [
+						xValue.call( data[ id ], d, i ),
+						yValue.call( data[ id ], d, i )
+					];
+				});
+			});
+
+			if ( !xEdges.length ) {
+				
+				min = d3.min( data, function ( dataset ) {
 					return d3.min( dataset, function ( d ) {
 						return d[ 0 ];
 					});
 				});
-			} else {
-				_xMin = xMin;
-			}
-			if ( !xMax && xMax !== 0 ) {
-				_xMax = d3.max( data, function ( dataset ) {
+
+				max = d3.max( data, function ( dataset ) {
 					return d3.max( dataset, function ( d ) {
 						return d[ 0 ];
 					});
 				});
+
+				binWidth = ( max - min ) / ( xNumEdges - 1 );
+
+				xEdges[ 0 ] = min;
+				for ( var j = 1; j < xNumEdges - 1; j++ ) {
+					xEdges[ j ] = min + ( binWidth*j );
+				} // end FOR i
+
+				xEdges[ xNumEdges - 1 ] = max + 1e-16; // inclusive edge
+
+			} // end IF (xEdges)
+
+			if ( !yEdges.length ) {
+				
+				min = d3.min( data, function ( dataset ) {
+					return d3.min( dataset, function ( d ) {
+						return d[ 1 ];
+					});
+				});
+
+				max = d3.max( data, function ( dataset ) {
+					return d3.max( dataset, function ( d ) {
+						return d[ 1 ];
+					});
+				});
+
+				binWidth = ( max - min ) / ( yNumEdges - 1 );
+
+				yEdges[ 0 ] = min;
+				for ( var k = 1; k < yNumEdges - 1; k++ ) {
+					yEdges[ k ] = min + ( binWidth*k );
+				} // end FOR i
+
+				yEdges[ yNumEdges - 1 ] = max + 1e-16; // inclusive edge
+
+			} // end IF (yEdges)
+
+			// Histogram the data:
+			data = histc( data, xEdges, yEdges );
+
+			// Drop off the first and last bins as these include values which exceeded the lower and upper bounds:
+			data = data.map( function ( d, i ) {
+				return data[ i ].slice( 1, data[ i ].length - 1 );
+			});
+
+			data.slice( 1, data.length-1 );
+
+			return data;
+
+			// FUNCTIONS:
+
+			function histc( data, xEdges, yEdges ) {
+
+				var id1, id2, counts = [];
+
+				// Initialize our counts array: (all zeros):
+				for ( var i = -1; i < xEdges.length; i++ ) {
+					counts[ i ] = [];
+					for ( var j = -1; j < yEdges.length; j++ ) {
+						counts[ i ][ j ] = 0;
+					} // end FOR i
+				} // end FOR j
+
+				// For each value in the data array, find where the value resides along the cumulative in each dimension:
+				for ( var k = 0; k < data.length; k++ ) {
+
+					for ( var n = 0; n < data[ k ].length; n++ ) {
+
+						// Perform a binary search along each dimension to find the index where the value equals or exceeds the corresponding value in the cumulative:
+						id1 = binarysearch( xEdges, data[ k ][ n ][ 0 ] );
+						id2 = binarysearch( yEdges, data[ k ][ n ][ 1 ] );
+
+						// Update the counts for the bin:
+						counts[ id1+1 ][ id2+1 ] += 1;
+
+					} // end FOR n
+
+				} // end FOR k
+
+				// Return the counts:
+				return counts;
+
+			} // end FUNCTION histc()
+
+			function binarysearch( vector, value ) {
+				//
+				//	NOTES:
+				//		- This is a variation of the binary search algorithm, in which we are not seeking equality, per se, but to find that index at which the supplied value equals or exceeds the value at that index but is less than the value at the next index. We are looking for the right 'bin'.
+				//
+
+				var lower = 0,
+					upper = vector.length,
+					id;
+
+				// Initial checks:
+				if ( value < vector[ lower ] ) {
+					// Value is below the lower bound:
+					return -1;
+				} // end IF
+				if ( value > vector[ upper-1 ] ) {
+					//  Value exceeds the upper bound:
+					return upper-1;
+				} // end IF
+
+				// We know that the value resides somewhere within our vector...okay to proceed:
+
+				// console.log(lower, id, upper);
+				while ( lower <= upper ) {
+
+					// Use a bitwise operator to return: Math.floor( (lower + upper) / 2), which is the middle value:
+					id = (lower + upper) >> 1;
+
+					// If the value is greater than the mid point, increase our lower bound index:
+					if (value > vector[ id ]) {
+						lower = id + 1;
+					} else {
+					// Does the value equal the upper bound? If yes, exit the loop; else decrement our lower bound index and tighten the bounds:
+						upper = ( value === vector[ id ] ) ? -2 : id - 1;
+					}
+
+					// console.log(lower, id, upper);
+
+				}
+
+				// Recall the following: 1) if a perfect match has been found, then upper is -2 and the current id is the upper bound at which the match occurred. In this case, we want to return that id. 2) if a perfect match has not been found, we have two scenarios: i) if the value is less than the value at the upper bound index, we want the previous id. ii) if the value is greater than or equal to the value at the upper bound index, we found our id.
+				return ( value < vector[id] ) ? id-1 : id;
+
+			} // end FUNCTION binary_search()
+
+		} // end FUNCTION formatData()
+
+		function getDomains( data ) {
+
+			var xDomain, yDomain, zDomain, _xMin, _xMax, _yMin, _yMax, _zMin, _zMax;
+
+			if ( !xMin && xMin !== 0 ) {
+				_xMin = xEdges[ 0 ];
+			} else {
+				_xMin = xMin;
+			}
+			if ( !xMax && xMax !== 0 ) {
+				_xMax = xEdges[ xEdges.length - 1 ];
 			} else {
 				_xMax = xMax;
 			}
 			
 			xDomain = [ _xMin, _xMax ];
-			
 
 			if ( !yMin && yMin !== 0 ) {
-				_yMin = d3.min( data, function ( dataset ) {
-					return d3.min( dataset, function ( d ) {
-						return d[ 1 ];
-					});
-				});
+				_yMin = yEdges[ 0 ];
 			} else {
 				_yMin = yMin;
 			}
 
 			if ( !yMax && yMax !== 0 ) {
-				_yMax = d3.max( data, function ( dataset ) {
-					return d3.max( dataset, function ( d ) {
-						return d[ 1 ];
-					});
-				});
+				_yMax = yEdges[ yEdges.length - 1 ];
 			} else {
 				_yMax = yMax;
 			}
 			
 			yDomain = [ _yMin, _yMax ];
-			
+
+			if ( !zMin && zMin !== 0 ) {
+				_zMin = d3.min( data, function ( dataset ) {
+					return d3.min( dataset, function ( d ) {
+						return d;
+					});
+				});
+			} else {
+				_zMin = zMin;
+			}
+
+			if ( !zMax && zMax !== 0 ) {
+				_zMax = d3.max( data, function ( dataset ) {
+					return d3.max( dataset, function ( d ) {
+						return d;
+					});
+				});
+			} else {
+				_zMax = zMax;
+			}
+
+			zDomain = [ _zMin, _zMax ];
+
 
 			// Update the x-scale:
 			xScale.domain( xDomain )
@@ -188,6 +360,10 @@ var Heatmap;
 			// Update the y-scale:
 			yScale.domain( yDomain )
 				.range( [height - padding.top - padding.bottom, 0] );
+
+			// Update the z-scale:
+			zScale.domain( zDomain )
+				.range( ['#ffffff', '#000000'] );
 
 		} // end FUNCTION getDomains()
 
@@ -202,6 +378,16 @@ var Heatmap;
 				.attr( 'viewBox', '0 0 ' + width + ' ' + height )
 				.attr( 'preserveAspectRatio', 'xMidYMid' )
 				.attr( 'data-aspect', width / height );
+
+			// Create the clip-path:
+			_clipPath = _canvas.append( 'svg:defs' )
+				.append( 'svg:clipPath' )
+					.attr( 'id', Date.now() );
+
+			_clipPath.append( 'svg:rect' )
+				.attr( 'class', 'clipPath' )
+				.attr( 'width', width-padding.left-padding.right )
+				.attr( 'height', height-padding.top-padding.bottom );
 
 			// Create the axes element:
 			_axes = _canvas.append( 'svg:g' )
@@ -224,6 +410,17 @@ var Heatmap;
 				.attr( 'transform', 'translate(' + 0 + ',' + 0 + ')' );
 
 		} // end FUNCTION createBase()
+
+		function createBackground() {
+
+			_background = _axes.append( 'svg:rect' )
+				.attr( 'class', 'background' )
+				.attr( 'x', 0 )
+				.attr( 'y', 0 )
+				.attr( 'width', width-padding.left-padding.right )
+				.attr( 'height', height-padding.top-padding.bottom );
+
+		} // end FUNCTION createBackground()
 
 		function createAxes() {
 
@@ -273,7 +470,7 @@ var Heatmap;
 
 		} // end FUNCTION createAxes()
 
-		function createHeatmap() {
+		function createHeatmap( data ) {
 
 			var context;
 
@@ -288,18 +485,24 @@ var Heatmap;
 			// Get the 2D context within the canvas:
 			context = _heatmap[0][0].getContext( '2d' );
 
-			// 
-			for ( var i = 0.5; i < 490; i += 10 ) {
-				for ( var j = 0.5; j < 270; j += 10 ) {
-					drawSquare( i, j, 10, 10, '#474747' );
+			// For fun colors: 'rgb(' + (Math.round( 255*Math.random() ) ) + ','+ (Math.round( 255*Math.random() ) ) + ',255)'
+			for ( var i = 0; i < xEdges.length; i++ ) {
+				for ( var j = 0; j < yEdges.length; j++ ) {
+					drawBin(
+						Math.round( xScale( xEdges[ i ] ) ),
+						Math.round( yScale( yEdges[ j ] ) ),
+						Math.round( (width-padding.left-padding.right) / ( xEdges.length - 1 ) ),
+						Math.round( (height-padding.top-padding.bottom) / ( yEdges.length - 1 ) ),
+						zScale( data[ i ][ j ] )
+					);
 				}
 			}
 
-			function drawSquare( x, y, w, h, fill ) {
+			function drawBin( x, y, w, h, fill ) {
+				
 				context.beginPath();
 				context.rect( x, y, w, h );
 				context.closePath();
-				// context.stroke();
 				context.fillStyle = fill;
 				context.fill();
 			}
@@ -319,6 +522,7 @@ var Heatmap;
 					.html( title );
 
 		} // end FUNCTION createTitle()
+
 
 		// PUBLIC: METHODS //
 
@@ -642,6 +846,50 @@ var Heatmap;
 			}
 		};
 
+		// Set/Get: xAxisOrient
+		chart.xAxisOrient = function( value ) {
+			var rules = 'matches[bottom,top]';
+
+			if ( !arguments.length ) {
+				return xAxisOrient;
+			}
+
+			validate( value, rules, set );
+
+			return chart;
+
+			function set( errors ) {
+				if ( errors ) {
+					console.error( errors );
+					return;
+				}
+				xAxisOrient = value;
+				_xAxis.orient( xAxisOrient );
+			}
+		};
+
+		// Set/Get: yAxisOrient
+		chart.yAxisOrient = function( value ) {
+			var rules = 'matches[left,right]';
+
+			if ( !arguments.length ) {
+				return yAxisOrient;
+			}
+
+			validate( value, rules, set );
+
+			return chart;
+
+			function set( errors ) {
+				if ( errors ) {
+					console.error( errors );
+					return;
+				}
+				yAxisOrient = value;
+				_yAxis.orient( yAxisOrient );
+			}
+		};
+
 		// Set/Get: xScale
 		chart.xScale = function( value ) {
 			var rules = 'function';
@@ -683,6 +931,27 @@ var Heatmap;
 				}
 				yScale = value;
 				_yAxis.scale( yScale );
+			}
+		};
+
+		// Set/Get: zScale
+		chart.zScale = function( value ) {
+			var rules = 'function';
+
+			if ( !arguments.length ) {
+				return zScale;
+			}
+
+			validate( value, rules, set );
+			
+			return chart;
+
+			function set( errors ) {
+				if ( errors ) {
+					console.error( errors );
+					return;
+				}
+				zScale = value;
 			}
 		};
 
@@ -770,6 +1039,48 @@ var Heatmap;
 			}
 		};
 
+		// Set/Get: zMin
+		chart.zMin = function( value ) {
+			var rules = 'number';
+
+			if ( !arguments.length ) {
+				return zMin;
+			}
+			
+			validate( value, rules, set );
+
+			return chart;
+
+			function set( errors ) {
+				if ( errors ) {
+					console.error( errors );
+					return;
+				}
+				zMin = value;
+			}
+		};
+
+		// Set/Get: zMax
+		chart.zMax = function( value ) {
+			var rules = 'number';
+
+			if ( !arguments.length ) {
+				return zMax;
+			}
+			
+			validate( value, rules, set );
+
+			return chart;
+
+			function set( errors ) {
+				if ( errors ) {
+					console.error( errors );
+					return;
+				}
+				zMax = value;
+			}
+		};
+
 		// Set/Get: title
 		chart.title = function ( value ) {
 			var rules = 'string';
@@ -791,12 +1102,12 @@ var Heatmap;
 			}
 		};
 
-		// Set/Get: labels
-		chart.labels = function ( value ) {
+		// Set/Get: xEdges
+		chart.xEdges = function ( value ) {
 			var rules = 'array';
 
 			if ( !arguments.length ) {
-				return labels;
+				return xEdges;
 			}
 			
 			validate( value, rules, set );
@@ -808,9 +1119,32 @@ var Heatmap;
 					console.error( errors );
 					return;
 				}
-				labels = value;
+				xEdges = value;
 			}
 		};
+
+		// Set/Get: yEdges
+		chart.yEdges = function ( value ) {
+			var rules = 'array';
+
+			if ( !arguments.length ) {
+				return yEdges;
+			}
+			
+			validate( value, rules, set );
+
+			return chart;
+
+			function set( errors ) {
+				if ( errors ) {
+					console.error( errors );
+					return;
+				}
+				yEdges = value;
+			}
+		};
+
+		
 
 		return chart;
 

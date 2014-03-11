@@ -20,11 +20,17 @@ body {
 
 .chart {
 	position: relative;
-	width: 600px;
-	height: 400px;
+	width: 1200px;
+	height: 800px;
 }
 
 .chart .canvas {
+	position: absolute;
+	left: 0;
+	top: 0;
+}
+
+.graph[data-graph-type="timeseries-heatmap"] {
 	position: absolute;
 	left: 0;
 	top: 0;
@@ -48,10 +54,9 @@ body {
 	stroke-width: 1px;
 }
 
-.graph[data-graph-type="timeseries-heatmap"] {
-	position: absolute;
-	left: 0;
-	top: 0;
+.axes[data-graph-type="timeseries-heatmap"] .background {
+	fill: none;
+	stroke: none;
 }
 
 .meta[data-graph-type="timeseries-heatmap"] .title {
