@@ -489,10 +489,10 @@ var Heatmap;
 			for ( var i = 0; i < xEdges.length; i++ ) {
 				for ( var j = 0; j < yEdges.length; j++ ) {
 					drawBin(
-						Math.round( xScale( xEdges[ i ] ) ),
-						Math.round( yScale( yEdges[ j ] ) ),
-						Math.round( (width-padding.left-padding.right) / ( xEdges.length - 1 ) ),
-						Math.round( (height-padding.top-padding.bottom) / ( yEdges.length - 1 ) ),
+						Math.floor( xScale( xEdges[ i ] ) ),
+						Math.floor( yScale( yEdges[ j ] ) ),
+						Math.ceil( (width-padding.left-padding.right) / ( xEdges.length - 1 ) ),
+						Math.ceil( (height-padding.top-padding.bottom) / ( yEdges.length - 1 ) ),
 						zScale( data[ i ][ j ] )
 					);
 				}
