@@ -106,7 +106,7 @@
 				data[ j ].push(
 					[
 						new Date( now - i*increment ),
-						Math.abs( means[ j % means.length ] + randn()*0.06 )
+						Math.abs( means[ j % means.length ] + randn()*0.075 )
 					]
 				);
 			} // end FOR i
