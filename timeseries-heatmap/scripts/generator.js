@@ -42,7 +42,7 @@
 
 var Heatmap;
 
-(function ( d3, hist2c, validate ) {
+(function ( d3, histc, hist2c, validate ) {
 	'use strict';
 
 	// VARIABLES //
@@ -102,7 +102,7 @@ var Heatmap;
 			yEdges = [],
 
 			// ELEMENTS:
-			_canvas, _clipPath, _background, _axes, _graph, _heatmap, _meta, _title, _marks, _bins;
+			_canvas, _clipPath, _background, _axes, _graph, _heatmap, _buffer, _meta, _title, _marks, _bins;
 
 			// PUBLIC: OBJECT //
 
@@ -249,11 +249,7 @@ var Heatmap;
 			yDomain = [ _yMin, _yMax ];
 
 			if ( !zMin && zMin !== 0 ) {
-				_zMin = d3.min( data, function ( dataset ) {
-					return d3.min( dataset, function ( d ) {
-						return d;
-					});
-				});
+				_zMin = 0;
 			} else {
 				_zMin = zMin;
 			}
@@ -281,7 +277,7 @@ var Heatmap;
 
 			// Update the z-scale:
 			zScale.domain( zDomain )
-				.range( ['#ffffff', '#000000'] );
+				.range( [ '#ffffff', '#000000' ] );
 
 		} // end FUNCTION getDomains()
 
@@ -390,10 +386,20 @@ var Heatmap;
 
 		function createHeatmap( data ) {
 
-			var context;
+			var context, binWidth, binHeight;
+
+			// Create a canvas buffer:
+			_buffer = _graph.append( 'xhtml:canvas' )
+				.attr( 'class', 'buffer' )
+				.attr( 'width', width - padding.left - padding.right )
+				.attr( 'height', height - padding.top - padding.bottom )
+				.style( 'margin-left', padding.left + 'px' )
+				.style( 'margin-top', padding.top + 'px' )
+				.style( 'display', 'none' )
+				.style( 'visibility', 'hidden' );
 
 			// Create the heatmap element:
-			_heatmap = _graph.append( 'canvas' )
+			_heatmap = _graph.append( 'xhtml:canvas' )
 				.attr( 'class', 'heatmap' )
 				.attr( 'width', width - padding.left - padding.right )
 				.attr( 'height', height - padding.top - padding.bottom )
@@ -403,27 +409,23 @@ var Heatmap;
 			// Get the 2D context within the canvas:
 			context = _heatmap[0][0].getContext( '2d' );
 
+			// Calculate the binWidth and binHeight:
+			binWidth = Math.ceil( (width-padding.left-padding.right) / ( xEdges.length - 1 ) );
+			binHeight = Math.ceil( (height-padding.top-padding.bottom) / ( yEdges.length - 1 ) );
+
 			// For fun colors: 'rgb(' + (Math.round( 255*Math.random() ) ) + ','+ (Math.round( 255*Math.random() ) ) + ',255)'
 			for ( var i = 0; i < xEdges.length-1; i++ ) {
 				for ( var j = 0; j < yEdges.length-1; j++ ) {
 					drawBin(
+						context,
 						Math.floor( xScale( xEdges[ i ] ) ),
 						Math.floor( yScale( yEdges[ j ] ) ),
-						Math.ceil( (width-padding.left-padding.right) / ( xEdges.length - 1 ) ),
-						Math.ceil( (height-padding.top-padding.bottom) / ( yEdges.length - 1 ) ),
+						binWidth,
+						binHeight,
 						zScale( data[ i ][ j ] )
 					);
-				}
-			}
-
-			function drawBin( x, y, w, h, fill ) {
-				
-				context.beginPath();
-				context.rect( x, y, w, h );
-				context.closePath();
-				context.fillStyle = fill;
-				context.fill();
-			}
+				} // end FOR j
+			} // end FOR i
 
 		} // end FUNCTION createHeatmap()
 
@@ -441,8 +443,114 @@ var Heatmap;
 
 		} // end FUNCTION createTitle()
 
+		function drawBin( context, x, y, w, h, fill ) {
+
+			context.beginPath();
+			context.rect( x, y, w, h );
+			context.closePath();
+			context.fillStyle = fill;
+			context.fill();
+
+		} // end FUNCTION drawbin()
+
 
 		// PUBLIC: METHODS //
+
+		/**
+		* FUNCTION: update( data, dx )
+		*	Chart update
+		*
+		* @param {array} data - observation vector. 
+		* @param {function} dx - quantity instructing the extent to which data should shift.
+		* 
+		*/
+		chart.update = function( data, dx ) {
+
+			var // Buffer context:
+				_context = _buffer[ 0 ][ 0 ].getContext( '2d' ),
+
+				// Heatmap context:
+				context = _heatmap[ 0 ][ 0 ].getContext( '2d' ),
+
+				counts, xDomain, xMax, zDomain, zMax, shift, imgData, _imgData, binHeight, colors = [], _yEdges = [],
+
+				_width, _height;
+
+
+			// Histogram the new data:
+			counts = histc( data, yEdges );
+
+			// Drop the first and last bins as these include values which exceed the lower and upper bounds:
+			counts = counts.slice( 1, counts.length-1 );
+
+			// Determine if we have reached a new zMax and need to update our zScale:
+			zDomain = zScale.domain();
+
+			zMax = d3.max( counts, function ( d ) {
+				return d;
+			});
+
+			if ( zMax > zDomain[ 1 ] ) {
+				zScale.domain( [ zDomain[ 0 ], zMax ] );
+			}
+
+			// Determine how many pixels we need to shift the heatmap:
+			xDomain = xScale.domain();
+			xMax = new Date( xDomain[ 1 ] ).getTime();
+			shift = Math.round( xScale( xMax + dx ) - xScale( xMax ) );
+
+			// Set the new xScale domain:
+			xScale.domain( [ new Date( xDomain[ 0 ] ).getTime()+dx, xMax+dx ] );
+
+			// Transition the axes:
+			_axes.select( '.x.axis' )
+				.transition()
+					.delay( 0 )
+					.duration( 1000 )
+					.ease( 'linear' )
+					.call( _xAxis );
+
+			// Get the width and height of the heatmap:
+			_width = width - padding.left - padding.right;
+			_height = height - padding.top - padding.bottom;
+
+			// For each count, get the color and get the pixel value for the yEdge:
+			for ( var k = 0; k < yEdges.length; k++ ) {
+				colors.push( zScale( counts[ k ] ) );
+				_yEdges.push( Math.floor( yScale( yEdges[ k ] ) ) );
+			}
+
+			// Calculate the bin height:
+			binHeight = Math.ceil( _height / ( yEdges.length - 1 ) );
+
+			// Extract the heatmap image data:
+			imgData = context.getImageData( shift, 0, _width-shift, _height );
+
+			// Clear the buffer:
+			_context.clearRect( 0, 0, _width, _height );
+
+			// Place the extracted image data on the buffer:
+			_context.putImageData( imgData, 0, 0 );
+
+			// Draw the new counts on the buffer...
+			for ( var j = 0; j < yEdges.length-1; j++ ) {
+				drawBin(
+					_context,
+					_width-shift,
+					_yEdges[ j ],
+					shift,
+					binHeight,
+					colors[ j ]
+				);
+			} // end FOR j
+
+			// Update the heatmap image data: http://jsperf.com/copying-a-canvas-element
+			context.drawImage( _buffer[ 0 ][ 0 ], 0, 0 );
+
+		};
+
+
+		// SETTERS/GETTERS //
 
 		// Set/Get: padding
 		chart.padding = function( value ) {
@@ -1072,4 +1180,9 @@ var Heatmap;
 
 	Heatmap = heatmap;
 
-})( d3, hist2c, Validator );
+})( d3, histc, hist2c, Validator );
+
+
+
+
+

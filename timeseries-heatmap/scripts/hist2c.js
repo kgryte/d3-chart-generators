@@ -31,11 +31,11 @@
 *	LICENSE:
 *		
 *
-*	Copyright (c) NodePrime. 2014. http://www.nodeprime.com
+*	Copyright (c) Athan Reines. 2014.
 *
 *
 *	AUTHOR:
-*		Nodeprime. contact@nodeprime.com. 2014.
+*		Athan Reines. athan@nodeprime.com. 2014.
 *
 *
 */

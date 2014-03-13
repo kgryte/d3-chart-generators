@@ -83,12 +83,42 @@
 		// Simulate the data:
 		d3.select( '.chart' )
 			.datum( data )
-			.call( heatmap );
+			.call( heatmap )
+			.each( refresh );
 
 	} // end FUNCTION render()
 
 
-		// FUNCTION: simulate()
+	/**
+	* FUNCTION: refresh()
+	*
+	*/
+	function refresh() {
+		var numSeries = 300,
+			means = [0.3, 0.5, 0.7],
+			increment = 2000,
+			data = [];
+
+
+		setInterval( update, increment );
+
+		function update() {
+			data = [];
+			for ( var j = 0; j < numSeries; j++ ) {
+				data.push( Math.abs( means[ j % means.length ] + randn() * 0.075 ) );
+			} // end FOR j
+
+			heatmap.update( data, increment );
+
+		}
+
+		function randn() {
+			return Math.sqrt( -2*Math.log( Math.random() ) ) * Math.cos( 2*Math.PI*Math.random() );
+		}
+	}
+
+
+	// FUNCTION: simulate()
 	//
 	// Simulate time series data.
 	function simulate() {
