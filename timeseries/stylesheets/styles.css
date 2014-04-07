@@ -1,0 +1,63 @@
+
+/* Box-Sizing */
+*, *:after, *::before {
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+body, div, canvas {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font-family: 'Cabin', 'Open-Sans', sans-serif;
+    color: #474747;
+	font-weight: normal;
+}
+
+.chart {
+	position: relative;
+	width: 600px;
+	height: 400px;
+}
+
+.graph[data-graph-type="timeseries"] .axis path {
+	fill: none;
+}
+
+.graph[data-graph-type="timeseries"] .y.axis path {
+	stroke: none;
+}
+
+.graph[data-graph-type="timeseries"] .x.axis path {
+	stroke: #aaa;
+	stroke-width: 1px;
+}
+
+.graph[data-graph-type="timeseries"] .axis line {
+	stroke: #aaa;
+	stroke-width: 1px;
+}
+
+.graph[data-graph-type="timeseries"] .background {
+	fill: none;
+	stroke: none;
+}
+
+.graph[data-graph-type="timeseries"] .line {
+	fill: none;
+	stroke: #474747;
+	stroke-width: 2px;
+	stroke-opacity: 90%;
+}
+
+.meta[data-graph-type="timeseries"] .title {
+	display: block;
+	font-size: 2em;
+	line-height: 2em;
+	padding: 0 10px;
+	color: #474747;
+	text-align: center;
+}

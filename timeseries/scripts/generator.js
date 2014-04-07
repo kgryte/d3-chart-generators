@@ -1,11 +1,11 @@
 /**
 *
-*	CHART: Timeseries Heatmap
+*	CHART: timeseries
 *
 *
 *
 *	DESCRIPTION:
-*		- 
+*		- Special variant of a line chart.
 *
 *
 *	API:
@@ -21,7 +21,7 @@
 *
 *
 *	HISTORY:
-*		- 2014/03/09: Created. [AReines].
+*		- 2014/03/28: Created. [AReines].
 *
 *
 *	DEPENDENCIES:
@@ -35,24 +35,24 @@
 *
 *
 *	AUTHOR:
-*		Athan Reines. athan@nodeprime.com. 2014
+*		Athan Reines. athan@nodeprime.com. 2014.
 *
 *
 */
 
-var Heatmap;
+var Timeseries;
 
-(function ( d3, histc, hist2c, validate ) {
+(function ( d3, validate ) {
 	'use strict';
 
 	// VARIABLES //
 
-	var heatmap;
+	var timeseries;
 
 
-	// HEATMAP //
+	// TIMESERIES //
 
-	heatmap = function() {
+	timeseries = function() {
 
 		// PRIVATE: VARIABLES //
 
@@ -60,7 +60,7 @@ var Heatmap;
 			padding = {
 				'top': 80,
 				'right': 20,
-				'bottom': 50,
+				'bottom': 80,
 				'left': 90
 			},
 
@@ -68,6 +68,8 @@ var Heatmap;
 			height = width / 1.61803398875, // Golden Ratio
 
 			// LABELS:
+			labels = [],
+
 			title = '',
 
 			xLabel = 'x',
@@ -77,9 +79,7 @@ var Heatmap;
 			xScale = d3.time.scale(),
 			yScale = d3.scale.linear(),
 
-			zScale = d3.scale.linear(),
-
-			xMin, xMax, yMin, yMax, zMin, zMax,
+			xMin, xMax, yMin, yMax,
 
 			// AXES:
 			xTickFormat = d3.time.format( '%M' ),
@@ -93,16 +93,18 @@ var Heatmap;
 			_xAxis = d3.svg.axis().scale( xScale ).orient( xAxisOrient ).tickFormat( xTickFormat ).ticks( xNumTicks ),
 			_yAxis = d3.svg.axis().scale( yScale ).orient( yAxisOrient ).ticks( yNumTicks ),
 
+			// PATHS:
+			interpolation = 'linear',
+
+			_line = d3.svg.line().x( X ).y( Y ).interpolate( interpolation ),
+
 			// ACCESSORS:
 			xValue = function( d ) { return d[ 0 ]; },
 			yValue = function( d ) { return d[ 1 ]; },
 
-			// DATA:
-			xEdges = [],
-			yEdges = [],
-
 			// ELEMENTS:
-			_canvas, _clipPath, _background, _axes, _graph, _heatmap, _buffer, _meta, _title, _marks, _bins;
+			_canvas, _clipPath, _graph, _meta, _title, _background, _marks, _paths;
+
 
 		// PUBLIC: OBJECT //
 
@@ -125,8 +127,8 @@ var Heatmap;
 				// Create the chart background:
 				createBackground();
 
-				// Create the heatmap:
-				createHeatmap( data );
+				// Create the paths:
+				createPaths( data );
 
 				// Create the axes:
 				createAxes();
@@ -143,8 +145,6 @@ var Heatmap;
 
 		function formatData( data ) {
 
-			var xNumEdges = 100, yNumEdges = 100, min, max;
-
 			// Convert data to standard representation; needed for non-deterministic accessors:
 			data = d3.range( data.length ).map( function ( id ) {
 				return data[ id ].map( function ( d, i ) {
@@ -155,117 +155,58 @@ var Heatmap;
 				});
 			});
 
-			if ( !xEdges.length ) {
-				
-				min = d3.min( data, function ( dataset ) {
-					return d3.min( dataset, function ( d ) {
-						return d[ 0 ];
-					});
-				});
-
-				max = d3.max( data, function ( dataset ) {
-					return d3.max( dataset, function ( d ) {
-						return d[ 0 ];
-					});
-				});
-
-				binWidth = ( max - min ) / ( xNumEdges - 1 );
-
-				xEdges[ 0 ] = min;
-				for ( var j = 1; j < xNumEdges - 1; j++ ) {
-					xEdges[ j ] = min + ( binWidth*j );
-				} // end FOR i
-
-				xEdges[ xNumEdges - 1 ] = max + 1e-16; // inclusive edge
-
-			} // end IF (xEdges)
-
-			if ( !yEdges.length ) {
-				
-				min = d3.min( data, function ( dataset ) {
-					return d3.min( dataset, function ( d ) {
-						return d[ 1 ];
-					});
-				});
-
-				max = d3.max( data, function ( dataset ) {
-					return d3.max( dataset, function ( d ) {
-						return d[ 1 ];
-					});
-				});
-
-				binWidth = ( max - min ) / ( yNumEdges - 1 );
-
-				yEdges[ 0 ] = min;
-				for ( var k = 1; k < yNumEdges - 1; k++ ) {
-					yEdges[ k ] = min + ( binWidth*k );
-				} // end FOR i
-
-				yEdges[ yNumEdges - 1 ] = max + 1e-16; // inclusive edge
-
-			} // end IF (yEdges)
-
-			// Histogram the data:
-			data = hist2c( data, xEdges, yEdges );
-
-			// Drop off the first and last bins as these include values which exceeded the lower and upper bounds:
-			data = data.map( function ( d, i ) {
-				return data[ i ].slice( 1, data[ i ].length - 1 );
-			});
-
-			return data.slice( 1, data.length-1 );
+			return data;
 
 		} // end FUNCTION formatData()
 
 		function getDomains( data ) {
 
-			var xDomain, yDomain, zDomain, _xMin, _xMax, _yMin, _yMax, _zMin, _zMax;
+			var xDomain, yDomain, _xMin, _xMax, _yMin, _yMax;
 
 			if ( !xMin && xMin !== 0 ) {
-				_xMin = xEdges[ 0 ];
+				_xMin = d3.min( data, function ( dataset ) {
+					return d3.min( dataset, function ( d ) {
+						return d[ 0 ];
+					});
+				});
 			} else {
 				_xMin = xMin;
 			}
 			if ( !xMax && xMax !== 0 ) {
-				_xMax = xEdges[ xEdges.length - 1 ];
+				_xMax = d3.max( data, function ( dataset ) {
+					return d3.max( dataset, function ( d ) {
+						return d[ 0 ];
+					});
+				});
 			} else {
 				_xMax = xMax;
 			}
 			
 			xDomain = [ _xMin, _xMax ];
+			
 
 			if ( !yMin && yMin !== 0 ) {
-				_yMin = yEdges[ 0 ];
+				_yMin = d3.min( data, function ( dataset ) {
+					return d3.min( dataset, function ( d ) {
+						return d[ 1 ];
+					});
+				});
 			} else {
 				_yMin = yMin;
 			}
 
 			if ( !yMax && yMax !== 0 ) {
-				_yMax = yEdges[ yEdges.length - 1 ];
+				_yMax = d3.max( data, function ( dataset ) {
+					return d3.max( dataset, function ( d ) {
+						return d[ 1 ];
+					});
+				});
 			} else {
 				_yMax = yMax;
 			}
 			
 			yDomain = [ _yMin, _yMax ];
-
-			if ( !zMin && zMin !== 0 ) {
-				_zMin = 0;
-			} else {
-				_zMin = zMin;
-			}
-
-			if ( !zMax && zMax !== 0 ) {
-				_zMax = d3.max( data, function ( dataset ) {
-					return d3.max( dataset, function ( d ) {
-						return d;
-					});
-				});
-			} else {
-				_zMax = zMax;
-			}
-
-			zDomain = [ _zMin, _zMax ];
-
+			
 
 			// Update the x-scale:
 			xScale.domain( xDomain )
@@ -274,10 +215,6 @@ var Heatmap;
 			// Update the y-scale:
 			yScale.domain( yDomain )
 				.range( [height - padding.top - padding.bottom, 0] );
-
-			// Update the z-scale:
-			zScale.domain( zDomain )
-				.range( [ '#ffffff', '#000000' ] );
 
 		} // end FUNCTION getDomains()
 
@@ -300,34 +237,28 @@ var Heatmap;
 
 			_clipPath.append( 'svg:rect' )
 				.attr( 'class', 'clipPath' )
-				.attr( 'width', width-padding.left-padding.right )
-				.attr( 'height', height-padding.top-padding.bottom );
-
-			// Create the axes element:
-			_axes = _canvas.append( 'svg:g' )
-				.attr( 'property', 'axes' )
-				.attr( 'class', 'axes' )
-				.attr( 'data-graph-type', 'timeseries-heatmap' )
-				.attr( 'transform', 'translate(' + padding.left + ',' + padding.top + ')' );
+				.attr( 'width', width - padding.left - padding.right )
+				.attr( 'height', height - padding.top - padding.bottom );
 
 			// Create the graph element:
-			_graph = d3.select( selection ).append( 'div' )
+			_graph = _canvas.append( 'svg:g' )
 				.attr( 'property', 'graph' )
 				.attr( 'class', 'graph' )
-				.attr( 'data-graph-type', 'timeseries-heatmap' );
+				.attr( 'data-graph-type', 'timeseries' )
+				.attr( 'transform', 'translate(' + padding.left + ',' + padding.top + ')' );
 
 			// Create the meta element:
 			_meta = _canvas.append( 'svg:g' )
 				.attr( 'property', 'meta' )
 				.attr( 'class', 'meta' )
-				.attr( 'data-graph-type', 'timeseries-heatmap' )
+				.attr( 'data-graph-type', 'timeseries' )
 				.attr( 'transform', 'translate(' + 0 + ',' + 0 + ')' );
 
 		} // end FUNCTION createBase()
 
 		function createBackground() {
 
-			_background = _axes.append( 'svg:rect' )
+			_background = _graph.append( 'svg:rect' )
 				.attr( 'class', 'background' )
 				.attr( 'x', 0 )
 				.attr( 'y', 0 )
@@ -336,15 +267,34 @@ var Heatmap;
 
 		} // end FUNCTION createBackground()
 
+		function createPaths( data ) {
+
+			// Create the marks group:
+			_marks = _graph.append( 'svg:g' )
+				.attr( 'property', 'marks' )
+				.attr( 'class', 'marks' )
+				.attr( 'clip-path', 'url(#' + _clipPath.attr( 'id' ) + ')' );
+
+			// Add paths:
+			_paths = _marks.selectAll( '.line' )
+				.data( data )
+			  .enter().append( 'svg:path' )
+				.attr( 'property', 'line timeseries' )
+				.attr( 'class', 'line' )
+				.attr( 'data-label', function ( d, i ) { return labels[ i ]; })
+				.attr( 'd', _line );
+
+		} // end FUNCTION createPaths()
+
 		function createAxes() {
 
-			_axes.append( 'svg:g' )
+			_graph.append( 'svg:g' )
 				.attr( 'property', 'axis' )
 				.attr( 'class', 'x axis' )
 				.attr( 'transform', 'translate(0,' + (yScale.range()[0]) + ')' )
 				.call( _xAxis );
 
-			_axes.select( '.x.axis' )
+			_graph.select( '.x.axis' )
 				.append( 'svg:text' )
 					.attr( 'y', 40 )
 					.attr( 'x', (width - padding.left - padding.right) / 2 )
@@ -353,15 +303,15 @@ var Heatmap;
 					.attr( 'class', 'label' )
 					.text( xLabel );
 
-			_axes.select( '.x.axis' )
+			_graph.select( '.x.axis' )
 				.selectAll( '.tick' )
 					.attr( 'property', 'axis_tick' );
 
-			_axes.select( '.x.axis' )
+			_graph.select( '.x.axis' )
 				.selectAll( '.domain' )
 					.attr( 'property', 'axis_domain' );
 
-			_axes.append( 'svg:g' )
+			_graph.append( 'svg:g' )
 				.attr( 'property', 'axis' )
 				.attr( 'class', 'y axis' )
 				.call( _yAxis )
@@ -374,60 +324,15 @@ var Heatmap;
 						.attr( 'class', 'label' )
 						.text( yLabel );
 
-			_axes.select( '.y.axis' )
+			_graph.select( '.y.axis' )
 				.selectAll( '.tick' )
 					.attr( 'property', 'axis_tick' );
 
-			_axes.select( '.y.axis' )
+			_graph.select( '.y.axis' )
 				.selectAll( '.domain' )
 					.attr( 'property', 'axis_domain' );
 
 		} // end FUNCTION createAxes()
-
-		function createHeatmap( data ) {
-
-			var context, binWidth, binHeight;
-
-			// Create a canvas buffer:
-			_buffer = _graph.append( 'xhtml:canvas' )
-				.attr( 'class', 'buffer' )
-				.attr( 'width', width - padding.left - padding.right )
-				.attr( 'height', height - padding.top - padding.bottom )
-				.style( 'margin-left', padding.left + 'px' )
-				.style( 'margin-top', padding.top + 'px' )
-				.style( 'display', 'none' )
-				.style( 'visibility', 'hidden' );
-
-			// Create the heatmap element:
-			_heatmap = _graph.append( 'xhtml:canvas' )
-				.attr( 'class', 'heatmap' )
-				.attr( 'width', width - padding.left - padding.right )
-				.attr( 'height', height - padding.top - padding.bottom )
-				.style( 'margin-left', padding.left + 'px' )
-				.style( 'margin-top', padding.top + 'px' );
-
-			// Get the 2D context within the canvas:
-			context = _heatmap[0][0].getContext( '2d' );
-
-			// Calculate the binWidth and binHeight:
-			binWidth = Math.ceil( (width-padding.left-padding.right) / ( xEdges.length - 1 ) );
-			binHeight = Math.ceil( (height-padding.top-padding.bottom) / ( yEdges.length - 1 ) );
-
-			// For fun colors: 'rgb(' + (Math.round( 255*Math.random() ) ) + ','+ (Math.round( 255*Math.random() ) ) + ',255)'
-			for ( var i = 0; i < xEdges.length-1; i++ ) {
-				for ( var j = 0; j < yEdges.length-1; j++ ) {
-					drawBin(
-						context,
-						Math.floor( xScale( xEdges[ i ] ) ),
-						Math.floor( yScale( yEdges[ j ] ) ),
-						binWidth,
-						binHeight,
-						zScale( data[ i ][ j ] )
-					);
-				} // end FOR j
-			} // end FOR i
-
-		} // end FUNCTION createHeatmap()
 
 		function createTitle() {
 
@@ -443,114 +348,18 @@ var Heatmap;
 
 		} // end FUNCTION createTitle()
 
-		function drawBin( context, x, y, w, h, fill ) {
+		// x-accessor:
+		function X( d ) {
+			return xScale( d[ 0 ] );
+		}
 
-			context.beginPath();
-			context.rect( x, y, w, h );
-			context.closePath();
-			context.fillStyle = fill;
-			context.fill();
-
-		} // end FUNCTION drawbin()
+		// y-accessor:
+		function Y( d ) {
+			return yScale( d[ 1 ] );
+		}
 
 
 		// PUBLIC: METHODS //
-
-		/**
-		* FUNCTION: update( data, dx )
-		*	Chart update
-		*
-		* @param {array} data - observation vector. 
-		* @param {function} dx - quantity instructing the extent to which data should shift.
-		* 
-		*/
-		chart.update = function( data, dx ) {
-
-			var // Buffer context:
-				_context = _buffer[ 0 ][ 0 ].getContext( '2d' ),
-
-				// Heatmap context:
-				context = _heatmap[ 0 ][ 0 ].getContext( '2d' ),
-
-				counts, xDomain, xMax, zDomain, zMax, shift, imgData, _imgData, binHeight, colors = [], _yEdges = [],
-
-				_width, _height;
-
-
-			// Histogram the new data:
-			counts = histc( data, yEdges );
-
-			// Drop the first and last bins as these include values which exceed the lower and upper bounds:
-			counts = counts.slice( 1, counts.length-1 );
-
-			// Determine if we have reached a new zMax and need to update our zScale:
-			zDomain = zScale.domain();
-
-			zMax = d3.max( counts, function ( d ) {
-				return d;
-			});
-
-			if ( zMax > zDomain[ 1 ] ) {
-				zScale.domain( [ zDomain[ 0 ], zMax ] );
-			}
-
-			// Determine how many pixels we need to shift the heatmap:
-			xDomain = xScale.domain();
-			xMax = new Date( xDomain[ 1 ] ).getTime();
-			shift = Math.round( xScale( xMax + dx ) - xScale( xMax ) );
-
-			// Set the new xScale domain:
-			xScale.domain( [ new Date( xDomain[ 0 ] ).getTime()+dx, xMax+dx ] );
-
-			// Transition the axes:
-			_axes.select( '.x.axis' )
-				.transition()
-					.delay( 0 )
-					.duration( 1000 )
-					.ease( 'linear' )
-					.call( _xAxis );
-
-			// Get the width and height of the heatmap:
-			_width = width - padding.left - padding.right;
-			_height = height - padding.top - padding.bottom;
-
-			// For each count, get the color and get the pixel value for the yEdge:
-			for ( var k = 0; k < yEdges.length; k++ ) {
-				colors.push( zScale( counts[ k ] ) );
-				_yEdges.push( Math.floor( yScale( yEdges[ k ] ) ) );
-			}
-
-			// Calculate the bin height:
-			binHeight = Math.ceil( _height / ( yEdges.length - 1 ) );
-
-			// Extract the heatmap image data:
-			imgData = context.getImageData( shift, 0, _width-shift, _height );
-
-			// Clear the buffer:
-			_context.clearRect( 0, 0, _width, _height );
-
-			// Place the extracted image data on the buffer:
-			_context.putImageData( imgData, 0, 0 );
-
-			// Draw the new counts on the buffer...
-			for ( var j = 0; j < yEdges.length-1; j++ ) {
-				drawBin(
-					_context,
-					_width-shift,
-					_yEdges[ j ],
-					shift,
-					binHeight,
-					colors[ j ]
-				);
-			} // end FOR j
-
-			// Update the heatmap image data: http://jsperf.com/copying-a-canvas-element
-			context.drawImage( _buffer[ 0 ][ 0 ], 0, 0 );
-
-		};
-
-
-		// SETTERS/GETTERS //
 
 		// Set/Get: padding
 		chart.padding = function( value ) {
@@ -872,16 +681,17 @@ var Heatmap;
 			}
 		};
 
-		// Set/Get: xAxisOrient
-		chart.xAxisOrient = function( value ) {
-			var rules = 'matches[bottom,top]';
+		// Set/Get: interpolation
+		chart.interpolation = function( value ) {
+			// https://github.com/mbostock/d3/wiki/SVG-Shapes#wiki-line_interpolate
+			var rules = 'string|matches[linear, linear-closed, step, step-before, step-after, basis, basis-open, basis-closed, bundle, cardinal, cardinal-open, cardinal-closed, monotone]';
 
 			if ( !arguments.length ) {
-				return xAxisOrient;
+				return interpolation;
 			}
 
 			validate( value, rules, set );
-
+			
 			return chart;
 
 			function set( errors ) {
@@ -889,30 +699,8 @@ var Heatmap;
 					console.error( errors );
 					return;
 				}
-				xAxisOrient = value;
-				_xAxis.orient( xAxisOrient );
-			}
-		};
-
-		// Set/Get: yAxisOrient
-		chart.yAxisOrient = function( value ) {
-			var rules = 'matches[left,right]';
-
-			if ( !arguments.length ) {
-				return yAxisOrient;
-			}
-
-			validate( value, rules, set );
-
-			return chart;
-
-			function set( errors ) {
-				if ( errors ) {
-					console.error( errors );
-					return;
-				}
-				yAxisOrient = value;
-				_yAxis.orient( yAxisOrient );
+				interpolation = value;
+				_line.interpolate( interpolation );
 			}
 		};
 
@@ -960,27 +748,6 @@ var Heatmap;
 			}
 		};
 
-		// Set/Get: zScale
-		chart.zScale = function( value ) {
-			var rules = 'function';
-
-			if ( !arguments.length ) {
-				return zScale;
-			}
-
-			validate( value, rules, set );
-			
-			return chart;
-
-			function set( errors ) {
-				if ( errors ) {
-					console.error( errors );
-					return;
-				}
-				zScale = value;
-			}
-		};
-
 		// Set/Get: xMin
 		chart.xMin = function( value ) {
 			var rules = 'number';
@@ -989,7 +756,9 @@ var Heatmap;
 				return xMin;
 			}
 
-			validate( value, rules, set );
+			if ( !_.isUndefined( value ) && !_.isNull( value ) ) {
+				validate( value, rules, set );
+			}
 			
 			return chart;
 
@@ -1010,7 +779,9 @@ var Heatmap;
 				return xMax;
 			}
 			
-			validate( value, rules, set );
+			if ( !_.isUndefined( value ) && !_.isNull( value ) ) {
+				validate( value, rules, set );
+			}
 
 			return chart;
 
@@ -1031,7 +802,9 @@ var Heatmap;
 				return yMin;
 			}
 			
-			validate( value, rules, set );
+			if ( !_.isUndefined( value ) && !_.isNull( value ) ) {
+				validate( value, rules, set );
+			}
 
 			return chart;
 
@@ -1052,7 +825,9 @@ var Heatmap;
 				return yMax;
 			}
 			
-			validate( value, rules, set );
+			if ( !_.isUndefined( value ) && !_.isNull( value ) ) {
+				validate( value, rules, set );
+			}
 
 			return chart;
 
@@ -1065,14 +840,14 @@ var Heatmap;
 			}
 		};
 
-		// Set/Get: zMin
-		chart.zMin = function( value ) {
-			var rules = 'number';
+		// Set/Get: xAxisOrient
+		chart.xAxisOrient = function( value ) {
+			var rules = 'matches[bottom,top]';
 
 			if ( !arguments.length ) {
-				return zMin;
+				return xAxisOrient;
 			}
-			
+
 			validate( value, rules, set );
 
 			return chart;
@@ -1082,18 +857,19 @@ var Heatmap;
 					console.error( errors );
 					return;
 				}
-				zMin = value;
+				xAxisOrient = value;
+				_xAxis.orient( xAxisOrient );
 			}
 		};
 
-		// Set/Get: zMax
-		chart.zMax = function( value ) {
-			var rules = 'number';
+		// Set/Get: yAxisOrient
+		chart.yAxisOrient = function( value ) {
+			var rules = 'matches[left,right]';
 
 			if ( !arguments.length ) {
-				return zMax;
+				return yAxisOrient;
 			}
-			
+
 			validate( value, rules, set );
 
 			return chart;
@@ -1103,7 +879,8 @@ var Heatmap;
 					console.error( errors );
 					return;
 				}
-				zMax = value;
+				yAxisOrient = value;
+				_yAxis.orient( yAxisOrient );
 			}
 		};
 
@@ -1128,12 +905,12 @@ var Heatmap;
 			}
 		};
 
-		// Set/Get: xEdges
-		chart.xEdges = function ( value ) {
+		// Set/Get: labels
+		chart.labels = function ( value ) {
 			var rules = 'array';
 
 			if ( !arguments.length ) {
-				return xEdges;
+				return labels;
 			}
 			
 			validate( value, rules, set );
@@ -1145,44 +922,17 @@ var Heatmap;
 					console.error( errors );
 					return;
 				}
-				xEdges = value;
+				labels = value;
 			}
 		};
-
-		// Set/Get: yEdges
-		chart.yEdges = function ( value ) {
-			var rules = 'array';
-
-			if ( !arguments.length ) {
-				return yEdges;
-			}
-			
-			validate( value, rules, set );
-
-			return chart;
-
-			function set( errors ) {
-				if ( errors ) {
-					console.error( errors );
-					return;
-				}
-				yEdges = value;
-			}
-		};
-
-		
 
 		return chart;
 
 	};
 
+
 	// EXPORTS //
 
-	Heatmap = heatmap;
+	Timeseries = timeseries;
 
-})( d3, histc, hist2c, Validator );
-
-
-
-
-
+})( d3, Validator );
