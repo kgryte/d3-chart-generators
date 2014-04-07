@@ -1,0 +1,75 @@
+
+/* Box-Sizing */
+*, *:after, *::before {
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+body, div, canvas {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font-family: 'Cabin', 'Open-Sans', sans-serif;
+    color: #474747;
+	font-weight: normal;
+}
+
+.chart {
+	position: relative;
+	width: 600px;
+	height: 400px;
+}
+
+.graph[data-graph-type="line"] .axis path {
+	fill: none;
+}
+
+.graph[data-graph-type="line"] .y.axis path {
+	stroke: none;
+}
+
+.graph[data-graph-type="line"] .x.axis path {
+	stroke: #aaa;
+	stroke-width: 1px;
+}
+
+.graph[data-graph-type="line"] .axis line {
+	stroke: #aaa;
+	stroke-width: 1px;
+}
+
+.graph[data-graph-type="line"] .background {
+	fill: none;
+	stroke: none;
+}
+
+.graph[data-graph-type="line"] .line {
+	fill: none;
+	stroke: #474747;
+	stroke-width: 2px;
+	stroke-opacity: 90%;
+}
+
+.graph[data-graph-type="line"] .line[data-label="line 1"] {
+	stroke: #00dd00;
+}
+
+.graph[data-graph-type="line"] .line[data-label="line 2"] {
+	stroke: #ff0000;
+}
+
+.graph[data-graph-type="line"] .line[data-label="line 3"] {
+	stroke: #474747;
+}
+
+.meta[data-graph-type="line"] .title {
+	display: block;
+	font-size: 2em;
+	line-height: 2em;
+	padding: 0 10px;
+	color: #474747;
+	text-align: center;
+}

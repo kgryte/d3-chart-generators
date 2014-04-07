@@ -5,7 +5,7 @@
 (function ( d3 ) {
 	'use strict';
 
-	var timeseries,
+	var line,
 
 		simFLG = false,
 
@@ -18,28 +18,28 @@
 	width = parseInt( d3.select( '.chart' ).style( 'width' ), 10 );
 	height = parseInt( d3.select( '.chart' ).style( 'height' ), 10 );
 
-	// Instantiate a new timeseries constructor:
-	timeseries = new Timeseries();
+	// Instantiate a new line chart constructor:
+	line = new Line();
 
-	// Configure the timeseries:
-	timeseries
+	// Configure the line chart:
+	line
 		.width( width )
 		.height( height )
-		.xLabel( 'time' )
+		.xLabel( 'time [sec]' )
 		.yLabel( 'intensity [au]' )
 		.yMin( 0 )
 		.x( function ( d ) { return d[ 0 ]; })
 		.y( function ( d ) { return d[ 1 ]; })
-		.labels( [ 'timeseries 1', 'timeseries 2', 'timeseries 3' ] )
-		.title( 'Timeseries' );
+		.labels( [ 'line 1', 'line 2', 'line 3' ] )
+		.title( 'Line Chart' );
 
-	// Bind data to the chart and generate the timeseries...
+	// Bind data to the chart and generate the line chart...
 	if ( simFLG ) {
 
 		// Simulate the data:
 		d3.select( '.chart' )
 			.datum( simulate() )
-			.call( timeseries );
+			.call( line );
 
 	} else {
 
@@ -50,7 +50,7 @@
 			}
 			d3.select( '.chart' )
 				.datum( formatData( data ) )
-				.call( timeseries );
+				.call( line );
 		});
 
 	}
@@ -58,7 +58,7 @@
 
 	/**
 	* FUNCTION: formatData( data )
-	*	Takes a key-value timeseries store and formats the data as an array of arrays.
+	*	Takes a key-value data store and formats the data as an array of arrays.
 	*
 	* @param {array} data - array of objects
 	*
@@ -81,23 +81,23 @@
 
 	/**
 	* FUNCTION: simulate()
-	*	Simulate time series data.
+	*	Simulate line chart data.
 	*
-	* @returns {array} array of arrays, in which each array is a timeseries.
+	* @returns {array} array of arrays, in which each array is a separate line.
 	*/
 	function simulate() {
 
 		var data = [],
 			seriesLength = 300,
-			increment = 10, // milliseconds
+			increment = 10,
 			mean = 0.5,
-			now = Date.now();
+			start = 0;
 
 		data[0] = [];
 		for ( var i = seriesLength - 1; i >= 0; i-- ) {
 			data[0].push(
 				[
-					new Date( now - i*increment ),
+					start + i*increment,
 					Math.abs( mean + randn()*0.08 )
 				]
 			);
