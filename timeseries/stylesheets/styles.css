@@ -53,6 +53,18 @@ body {
 	stroke-opacity: 90%;
 }
 
+.graph[data-graph-type="timeseries"] .line[data-label="timeseries 1"] {
+	stroke: #00dd00;
+}
+
+.graph[data-graph-type="timeseries"] .line[data-label="timeseries 2"] {
+	stroke: #ff0000;
+}
+
+.graph[data-graph-type="timeseries"] .line[data-label="timeseries 3"] {
+	stroke: #474747;
+}
+
 .meta[data-graph-type="timeseries"] .title {
 	display: block;
 	font-size: 2em;

@@ -26,11 +26,11 @@
 		.width( width )
 		.height( height )
 		.xLabel( 'time [sec]' )
-		.yLabel( 'intensity' )
+		.yLabel( 'intensity [au]' )
 		.yMin( 0 )
-		.x( function ( d ) { return d.x; })
-		.y( function ( d ) { return d.y[0]; })
-		.labels( [ 'DexDem', 'DexAem', 'AexAem' ] )
+		.x( function ( d ) { return d[ 0 ]; })
+		.y( function ( d ) { return d[ 1 ]; })
+		.labels( [ 'timeseries 1', 'timeseries 2', 'timeseries 3' ] )
 		.title( 'Timeseries' );
 
 	// Bind data to the chart and generate the timeseries...
@@ -49,16 +49,42 @@
 				return console.error( error );
 			}
 			d3.select( '.chart' )
-				.datum( data )
+				.datum( formatData( data ) )
 				.call( timeseries );
 		});
 
 	}
 
 
-	// FUNCTION: simulate()
-	//
-	// Simulate time series data.
+	/**
+	* FUNCTION: formatData( data )
+	*	Takes a key-value timeseries store and formats the data as an array of arrays.
+	*
+	* @param {array} data - array of objects
+	*
+	* @returns {array} array of arrays
+	*/
+	function formatData( data ) {
+
+		var _dat = [];
+
+		for ( var i = 0; i < data[ 0 ].y.length; i++ ) {
+			_dat.push( [] );
+			for ( var j = 0; j < data.length; j++ ){
+				_dat[ i ].push( [ data[ j ].x, data[ j ].y[ i ] ] );
+			} // end FOR j
+		} // end FOR i
+
+		return _dat;
+
+	} // end FUNCTION formatData()
+
+	/**
+	* FUNCTION: simulate()
+	*	Simulate time series data.
+	*
+	* @returns {array} array of arrays, in which each array is a timeseries.
+	*/
 	function simulate() {
 
 		var data = [],
