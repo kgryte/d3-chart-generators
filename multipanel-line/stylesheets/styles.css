@@ -1,0 +1,63 @@
+
+/* Box-Sizing */
+*, *:after, *::before {
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+body, div, canvas {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font-family: 'Cabin', 'Open-Sans', sans-serif;
+    color: #474747;
+	font-weight: normal;
+}
+
+.chart {
+	position: relative;
+	width: 600px;
+	height: 400px;
+}
+
+.graph[data-graph-type="multipanel-line"] .axis path {
+	fill: none;
+}
+
+.graph[data-graph-type="multipanel-line"] .y.axis path {
+	stroke: none;
+}
+
+.graph[data-graph-type="multipanel-line"] .x.axis path {
+	stroke: #aaa;
+	stroke-width: 1px;
+}
+
+.graph[data-graph-type="multipanel-line"] .axis line {
+	stroke: #aaa;
+	stroke-width: 1px;
+}
+
+.graph[data-graph-type="multipanel-line"] .background {
+	fill: none;
+	stroke: none;
+}
+
+.graph[data-graph-type="multipanel-line"] .line {
+	fill: none;
+	stroke: #474747;
+	stroke-width: 2px;
+	stroke-opacity: 90%;
+}
+
+.meta[data-graph-type="multipanel-line"] .title {
+	display: block;
+	font-size: 2em;
+	multipanel-line-height: 2em;
+	padding: 0 10px;
+	color: #474747;
+	text-align: center;
+}
