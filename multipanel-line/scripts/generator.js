@@ -115,6 +115,15 @@ var Multipanel = {
 
 			selection.each( function ( data ) {
 
+				var _height = height,
+					_padding = {
+						'top': padding.top,
+						'bottom': padding.bottom,
+						'left': padding.left,
+						'right': padding.right
+					},
+					ticks = true;
+
 				// Standardize the data:
 				data = formatData( data );
 
@@ -124,20 +133,43 @@ var Multipanel = {
 				// For each dataset, create a separate SVG canvas...
 				for ( var i = 0; i < data.length; i++ ) {
 
-					// Create the chart base:
-					createBase( this );
+					// Calculate canvas dimensions:
+					if ( i === 0 ) {
+						_padding.top = padding.top;
+						_padding.bottom = 6;
+						_height = height - padding.bottom + _padding.bottom;
+					} else if ( i === data.length-1 ) {
+						_padding.top = 0;
+						_padding.bottom = padding.bottom;
+						_height = height - padding.top + _padding.top;
+					} else {
+						_padding.top = 0;
+						_padding.bottom = 6;
+						_height = height - padding.top - padding.bottom + _padding.top + _padding.bottom;
+					}
+
+					// Do we include x-axis ticks labels?
+					ticks = ( i === data.length-1 ) ? true : false;
+
+					// Create the chart base; only the top panel should have top padding and only the bottom panel should have bottom padding:
+					createBase( this, _height, _padding );
 
 					// Create the chart background:
-					createBackground();
+					createBackground( _height, _padding );
 
 					// Create the paths:
 					createPaths( [ data[ i ] ] );
 
-					// Create the axes:
-					createAxes();
+					// Create the y-axis:
+					createYAxis();
 
-					// Create the title:
-					createTitle();
+					// Create the x-axis:
+					createXAxis( ticks );
+
+					// Only create a title for the top panel:
+					if ( i === 0 ) {
+						createTitle();
+					}
 
 				} // end FOR i
 
@@ -223,7 +255,7 @@ var Multipanel = {
 
 		} // end FUNCTION getDomains()
 
-		function createBase( selection ) {
+		function createBase( selection, height, padding ) {
 
 			// Create the SVG element:
 			_canvas = d3.select( selection ).append( 'svg:svg' )
@@ -261,7 +293,7 @@ var Multipanel = {
 
 		} // end FUNCTION createBase()
 
-		function createBackground() {
+		function createBackground( height, padding ) {
 
 			_background = _graph.append( 'svg:rect' )
 				.attr( 'class', 'background' )
@@ -291,7 +323,13 @@ var Multipanel = {
 
 		} // end FUNCTION createPaths()
 
-		function createAxes() {
+		function createXAxis( flg ) {
+
+			if ( !flg ) {
+				_xAxis.tickFormat( '' );
+			} else {
+				_xAxis.tickFormat( null );
+			}
 
 			_graph.append( 'svg:g' )
 				.attr( 'property', 'axis' )
@@ -299,14 +337,16 @@ var Multipanel = {
 				.attr( 'transform', 'translate(0,' + (yScale.range()[0]) + ')' )
 				.call( _xAxis );
 
-			_graph.select( '.x.axis' )
-				.append( 'svg:text' )
-					.attr( 'y', 40 )
-					.attr( 'x', (width - padding.left - padding.right) / 2 )
-					.attr( 'text-anchor', 'middle' )
-					.attr( 'property', 'axis_label' )
-					.attr( 'class', 'label' )
-					.text( xLabel );
+			if ( flg ) {
+				_graph.select( '.x.axis' )
+					.append( 'svg:text' )
+						.attr( 'y', 40 )
+						.attr( 'x', (width - padding.left - padding.right) / 2 )
+						.attr( 'text-anchor', 'middle' )
+						.attr( 'property', 'axis_label' )
+						.attr( 'class', 'label' )
+						.text( xLabel );
+			}
 
 			_graph.select( '.x.axis' )
 				.selectAll( '.tick' )
@@ -315,6 +355,10 @@ var Multipanel = {
 			_graph.select( '.x.axis' )
 				.selectAll( '.domain' )
 					.attr( 'property', 'axis_domain' );
+
+		} // end FUNCTION createXAxis()
+
+		function createYAxis() {
 
 			_graph.append( 'svg:g' )
 				.attr( 'property', 'axis' )
@@ -337,7 +381,7 @@ var Multipanel = {
 				.selectAll( '.domain' )
 					.attr( 'property', 'axis_domain' );
 
-		} // end FUNCTION createAxes()
+		} // end FUNCTION createYAxis()
 
 		function createTitle() {
 

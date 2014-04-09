@@ -28,6 +28,8 @@
 		.xLabel( 'time [sec]' )
 		.yLabel( 'value' )
 		.yMin( 0 )
+		.yMax( 1 )
+		.yNumTicks( 3 )
 		.x( function ( d ) { return d[ 0 ]; })
 		.y( function ( d ) { return d[ 1 ]; })
 		.labels( [ 'line 1', 'line 2', 'line 3' ] )
@@ -101,7 +103,7 @@
 			for ( var i = seriesLength - 1; i >= 0; i-- ) {
 				data[ j ].push(
 					[
-						start + i*increment,
+						( start + i*increment ) / 1000,
 						Math.abs( mean + randn()*0.08 )
 					]
 				);

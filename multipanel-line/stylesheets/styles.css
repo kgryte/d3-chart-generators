@@ -19,8 +19,8 @@ body {
 
 .chart {
 	position: relative;
-	width: 600px;
-	height: 400px;
+	width: 400px;
+	height: 300px;
 }
 
 .graph[data-graph-type="multipanel-line"] .axis path {
