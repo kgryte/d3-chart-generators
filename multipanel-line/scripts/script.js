@@ -29,7 +29,7 @@
 		.yLabel( 'value' )
 		.yMin( 0 )
 		.yMax( 1 )
-		.yNumTicks( 3 )
+		.yNumTicks( 5 )
 		.x( function ( d ) { return d[ 0 ]; })
 		.y( function ( d ) { return d[ 1 ]; })
 		.labels( [ 'line 1', 'line 2', 'line 3' ] )
