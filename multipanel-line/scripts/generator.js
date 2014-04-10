@@ -67,7 +67,7 @@ var Multipanel = {
 			},
 
 			width = 600,
-			height = width / 1.61803398875, // Golden Ratio
+			height = null,
 
 			// LABELS:
 			labels = [],
@@ -90,13 +90,23 @@ var Multipanel = {
 			xAxisOrient = 'bottom',
 			yAxisOrient = 'left',
 
-			_xAxis = d3.svg.axis().scale( xScale ).orient( xAxisOrient ).ticks( xNumTicks ),
-			_yAxis = d3.svg.axis().scale( yScale ).orient( yAxisOrient ).ticks( yNumTicks ),
+			_xAxis = d3.svg.axis()
+				.scale( xScale )
+				.orient( xAxisOrient )
+				.ticks( xNumTicks )
+				.tickSize( 12, 0 ),
+			_yAxis = d3.svg.axis()
+				.scale( yScale )
+				.orient( yAxisOrient )
+				.ticks( yNumTicks ),
 
 			// PATHS:
 			interpolation = 'linear',
 
-			_line = d3.svg.line().x( X ).y( Y ).interpolate( interpolation ),
+			_line = d3.svg.line()
+				.x( X )
+				.y( Y )
+				.interpolate( interpolation ),
 
 			// ACCESSORS:
 			xValue = function( d ) { return d[ 0 ]; },
@@ -116,13 +126,21 @@ var Multipanel = {
 			selection.each( function ( data ) {
 
 				var numGraphs = data.length,
-					graphHeight = (height-padding.top-padding.bottom ) / numGraphs,
+					graphHeight,
 					top = padding.top,
 					xticks = true,
 					yticks = true;
 
 				// Standardize the data:
 				data = formatData( data );
+
+				// Determine the graph height:
+				if ( !height ) {
+					// Use Golden Ratio:
+					height = ( width-padding.left-padding.right) / 1.61803398875 * numGraphs;
+				}
+
+				graphHeight = ( height-padding.top-padding.bottom ) / numGraphs;
 
 				// Get the data domains:
 				getDomains( data, graphHeight );
@@ -148,11 +166,11 @@ var Multipanel = {
 					// Create the paths:
 					createPaths( [ data[ i ] ] );
 
-					// Create the y-axis:
-					createYAxis( yticks );
-
 					// Create the x-axis:
 					createXAxis( xticks );
+
+					// Create the y-axis:
+					createYAxis( yticks );
 
 					// Only create a title for the top panel:
 					if ( i === 0 ) {
@@ -318,67 +336,74 @@ var Multipanel = {
 
 		function createXAxis( flg ) {
 
+			var xAxis;
+
 			if ( !flg ) {
 				_xAxis.tickFormat( '' );
 			} else {
 				_xAxis.tickFormat( null );
 			}
 
-			_graph.append( 'svg:g' )
+			xAxis = _graph.append( 'svg:g' )
 				.attr( 'property', 'axis' )
 				.attr( 'class', 'x axis' )
 				.attr( 'transform', 'translate(0,' + (yScale.range()[0]) + ')' )
 				.call( _xAxis );
 
 			if ( flg ) {
-				_graph.select( '.x.axis' )
-					.append( 'svg:text' )
-						.attr( 'y', 40 )
-						.attr( 'x', (width - padding.left - padding.right) / 2 )
-						.attr( 'text-anchor', 'middle' )
-						.attr( 'property', 'axis_label' )
-						.attr( 'class', 'label' )
-						.text( xLabel );
+				xAxis.append( 'svg:text' )
+					.attr( 'y', 50 )
+					.attr( 'x', (width - padding.left - padding.right) / 2 )
+					.attr( 'text-anchor', 'middle' )
+					.attr( 'property', 'axis_label' )
+					.attr( 'class', 'label' )
+					.text( xLabel );
 			}
 
-			_graph.select( '.x.axis' )
-				.selectAll( '.tick' )
-					.attr( 'property', 'axis_tick' );
+			xAxis.selectAll( '.tick line' )
+				.attr( 'transform', 'translate(0,-6)' );
 
-			_graph.select( '.x.axis' )
-				.selectAll( '.domain' )
-					.attr( 'property', 'axis_domain' );
+			xAxis.selectAll( '.tick' )
+				.attr( 'property', 'axis_tick' );
+
+			xAxis.selectAll( '.domain' )
+				.attr( 'property', 'axis_domain' );
 
 		} // end FUNCTION createXAxis()
 
 		function createYAxis( flg ) {
 
-			var tickLabels;
+			var yAxis, yTicks;
 
-			_graph.append( 'svg:g' )
+			yAxis = _graph.append( 'svg:g' )
 				.attr( 'property', 'axis' )
 				.attr( 'class', 'y axis' )
-				.call( _yAxis )
-					.append( 'svg:text' )
-						.attr( 'transform', 'rotate(-90)' )
-						.attr( 'y', -72 )
-						.attr( 'x', -yScale.range()[0] / 2 )
-						.attr( 'text-anchor', 'middle' )
-						.attr( 'property', 'axis_label' )
-						.attr( 'class', 'label' )
-						.text( yLabel );
+				.call( _yAxis );
+
+
+			yAxis.append( 'svg:text' )
+				.attr( 'transform', 'rotate(-90)' )
+				.attr( 'y', -72 )
+				.attr( 'x', -yScale.range()[0] / 2 )
+				.attr( 'text-anchor', 'middle' )
+				.attr( 'property', 'axis_label' )
+				.attr( 'class', 'label' )
+				.text( yLabel );
+
+			yTicks = yAxis.selectAll( '.tick' );
 
 			if ( flg ) {
-				
+				yTicks.style( 'visibility', function ( d, i ) {
+					if ( i === yTicks[ 0 ].length-1 ) {
+						return 'hidden';
+					}
+				});
 			}
 
-			_graph.select( '.y.axis' )
-				.selectAll( '.tick' )
-					.attr( 'property', 'axis_tick' );
+			yTicks.attr( 'property', 'axis_tick' );
 
-			_graph.select( '.y.axis' )
-				.selectAll( '.domain' )
-					.attr( 'property', 'axis_domain' );
+			yAxis.selectAll( '.domain' )
+				.attr( 'property', 'axis_domain' );
 
 		} // end FUNCTION createYAxis()
 

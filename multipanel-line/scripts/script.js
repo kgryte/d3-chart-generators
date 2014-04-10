@@ -24,7 +24,6 @@
 	// Configure the multipanel line chart:
 	chart
 		.width( width )
-		.height( height )
 		.xLabel( 'time [sec]' )
 		.yLabel( 'value' )
 		.yMin( 0 )
@@ -90,7 +89,7 @@
 	function simulate() {
 
 		var data = [],
-			seriesLength = 300,
+			seriesLength = 301,
 			numSeries = 3,
 			increment = 10,
 			mean = 0.5,
@@ -100,7 +99,7 @@
 			
 			data.push( [] );
 
-			for ( var i = seriesLength - 1; i >= 0; i-- ) {
+			for ( var i = 0; i < seriesLength; i++ ) {
 				data[ j ].push(
 					[
 						( start + i*increment ) / 1000,
