@@ -189,7 +189,7 @@ var Histogram;
 					return [
 						edges[ i-1 ],
 						counts[ i ],
-						edges[ i ] - edges[ i-1 ]
+						edges[ i ]
 					];
 				});
 
@@ -415,7 +415,7 @@ var Histogram;
 
 		// width-accessor:
 		function Width( d ) {
-			return _xScale( d[ 2 ] );
+			return _xScale( d[ 2 ] ) - _xScale( d[ 0 ] );
 		}
 
 		// height-accessor:
