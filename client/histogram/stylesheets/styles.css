@@ -1,0 +1,64 @@
+
+
+/* Box-Sizing */
+*, *:after, *::before {
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+body, div, canvas {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font-family: 'Cabin', 'Open-Sans', sans-serif;
+    color: #474747;
+	font-weight: normal;
+}
+
+.chart {
+	position: relative;
+	width: 600px;
+	height: 400px;
+}
+
+.graph[data-graph-type="histogram"] .axis path {
+	fill: none;
+}
+
+.graph[data-graph-type="histogram"] .y.axis path {
+	stroke: none;
+}
+
+.graph[data-graph-type="histogram"] .x.axis path {
+	stroke: #aaa;
+	stroke-width: 1px;
+}
+
+.graph[data-graph-type="histogram"] .axis line {
+	stroke: #aaa;
+	stroke-width: 1px;
+}
+
+.graph[data-graph-type="histogram"] .background {
+	fill: none;
+	stroke: none;
+}
+
+.graph[data-graph-type="histogram"] .column {
+	fill: #474747;
+	stroke: #fff;
+	stroke-width: 2px;
+	stroke-opacity: 90%;
+}
+
+.meta[data-graph-type="histogram"] .title {
+	display: block;
+	font-size: 2em;
+	line-height: 2em;
+	padding: 0 10px;
+	color: #474747;
+	text-align: center;
+}
