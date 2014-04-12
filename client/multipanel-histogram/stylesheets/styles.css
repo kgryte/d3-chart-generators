@@ -1,4 +1,5 @@
 
+
 /* Box-Sizing */
 *, *:after, *::before {
     -moz-box-sizing: border-box;
@@ -22,37 +23,37 @@ body {
 	width: 400px;
 }
 
-.graph[data-graph-type="multipanel-line"] .axis path {
+.graph[data-graph-type="multipanel-histogram"] .axis path {
 	fill: none;
 }
 
-.graph[data-graph-type="multipanel-line"] .y.axis path {
+.graph[data-graph-type="multipanel-histogram"] .y.axis path {
 	stroke: none;
 }
 
-.graph[data-graph-type="multipanel-line"] .x.axis path {
+.graph[data-graph-type="multipanel-histogram"] .x.axis path {
 	stroke: #aaa;
 	stroke-width: 1px;
 }
 
-.graph[data-graph-type="multipanel-line"] .axis line {
+.graph[data-graph-type="multipanel-histogram"] .axis line {
 	stroke: #aaa;
 	stroke-width: 1px;
 }
 
-.graph[data-graph-type="multipanel-line"] .background {
+.graph[data-graph-type="multipanel-histogram"] .background {
 	fill: none;
 	stroke: none;
 }
 
-.graph[data-graph-type="multipanel-line"] .line {
-	fill: none;
-	stroke: #474747;
+.graph[data-graph-type="multipanel-histogram"] .column {
+	fill: #474747;
+	stroke: #fff;
 	stroke-width: 2px;
 	stroke-opacity: 90%;
 }
 
-.meta[data-graph-type="multipanel-line"] .title {
+.meta[data-graph-type="multipanel-histogram"] .title {
 	display: block;
 	font-size: 2em;
 	line-height: 2em;

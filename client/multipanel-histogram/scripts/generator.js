@@ -1,6 +1,6 @@
 /**
 *
-*	CHART: multipanel-line
+*	CHART: multipanel-histogram
 *
 *
 *
@@ -21,7 +21,7 @@
 *
 *
 *	HISTORY:
-*		- 2014/04/07: Created. [AReines].
+*		- 2014/04/12: Created. [AReines].
 *
 *
 *	DEPENDENCIES:
@@ -41,10 +41,10 @@
 */
 
 var Multipanel = {
-		"line": null
+		"histogram": null
 	};
 
-(function ( d3, validate ) {
+(function ( d3, histc, validate ) {
 	'use strict';
 
 	// VARIABLES //
@@ -52,7 +52,7 @@ var Multipanel = {
 	var Chart;
 
 
-	// MULTIPANEL-LINE //
+	// MULTIPANEL-HISTOGRAM //
 
 	Chart = function() {
 
@@ -78,7 +78,7 @@ var Multipanel = {
 			yLabel = 'y',
 
 			// SCALES:
-			xScale = d3.scale.linear(),
+			_xScale = d3.scale.linear(),
 			yScale = d3.scale.linear(),
 
 			xMin, xMax, yMin, yMax,
@@ -91,29 +91,25 @@ var Multipanel = {
 			yAxisOrient = 'left',
 
 			_xAxis = d3.svg.axis()
-				.scale( xScale )
+				.scale( _xScale )
 				.orient( xAxisOrient )
-				.ticks( xNumTicks )
-				.tickSize( 12, 0 ),
+				.ticks( xNumTicks ),
 			_yAxis = d3.svg.axis()
 				.scale( yScale )
 				.orient( yAxisOrient )
 				.ticks( yNumTicks ),
 
-			// PATHS:
-			interpolation = 'linear',
-
-			_line = d3.svg.line()
-				.x( X )
-				.y( Y )
-				.interpolate( interpolation ),
-
 			// ACCESSORS:
-			xValue = function( d ) { return d[ 0 ]; },
-			yValue = function( d ) { return d[ 1 ]; },
+			value = function( d ) { return d; },
+
+			// DATA:
+			edges = [],
+
+			// DISPLAY:
+			columnPadding = 1,
 
 			// ELEMENTS:
-			_canvas, _clipPath, _graph, _meta, _title, _background, _marks, _paths;
+			_canvas, _clipPath, _graph, _background, _meta, _title, _marks, _columns;
 
 
 		// PUBLIC: OBJECT //
@@ -142,13 +138,13 @@ var Multipanel = {
 
 				graphHeight = ( height-padding.top-padding.bottom ) / numGraphs;
 
-				// Get the data domains:
+				// Get the domains:
 				getDomains( data, graphHeight );
 
 				// Create the chart base:
 				createBase( this, graphHeight );
 
-				// For each dataset, create a separate graph on the chart canvas...
+				// For each dataset, create a separate graph on the chart canvas:
 				for ( var i = 0; i < data.length; i++ ) {
 
 					// Do we include x-axis ticks labels?
@@ -163,8 +159,8 @@ var Multipanel = {
 					// Create the chart background:
 					createBackground( graphHeight );
 
-					// Create the paths:
-					createPaths( [ data[ i ] ] );
+					// Create the columns:
+					createColumns( [ data[ i ] ] );
 
 					// Create the x-axis:
 					createXAxis( xticks );
@@ -188,14 +184,59 @@ var Multipanel = {
 
 		function formatData( data ) {
 
+			var min, max, numEdges = 21, binWidth;
+
 			// Convert data to standard representation; needed for non-deterministic accessors:
 			data = d3.range( data.length ).map( function ( id ) {
 				return data[ id ].map( function ( d, i ) {
+					return value.call( data[ id ], d, i );
+				});
+			});
+
+			if ( !edges.length ) {
+				
+				min = d3.min( data, function ( dataset ) {
+					return d3.min( dataset, function ( d ) {
+						return d;
+					});
+				});
+
+				max = d3.max( data, function ( dataset ) {
+					return d3.max( dataset, function ( d ) {
+						return d;
+					});
+				});
+
+				binWidth = ( max - min ) / ( numEdges - 1 );
+
+				edges[ 0 ] = min;
+				for ( var i = 1; i < numEdges - 1; i++ ) {
+					edges[ i ] = min + ( binWidth*i );
+				} // end FOR i
+
+				edges[ numEdges - 1 ] = max + 1e-16; // inclusive edge
+
+			} // end IF (edges)
+
+			// Histogram the data:
+			data = d3.range( data.length ).map( function ( id ) {
+
+				var counts;
+
+				counts = histc( data[ id ], edges );
+
+				// Augment counts to include the edge and binWidth (binWidth is needed in the event of variable bin width ):
+				counts = counts.map( function ( d, i ) {
 					return [
-						xValue.call( data[ id ], d, i ),
-						yValue.call( data[ id ], d, i )
+						edges[ i-1 ],
+						counts[ i ],
+						edges[ i ]
 					];
 				});
+
+				// Drop off the first and last bins as these include values which exceeded the lower and upper bounds:
+				return counts.slice( 1, counts.length-1 );
+
 			});
 
 			return data;
@@ -206,6 +247,7 @@ var Multipanel = {
 
 			var xDomain, yDomain, _xMin, _xMax, _yMin, _yMax;
 
+			// Compute the xDomain:
 			if ( !xMin && xMin !== 0 ) {
 				_xMin = d3.min( data, function ( dataset ) {
 					return d3.min( dataset, function ( d ) {
@@ -215,6 +257,7 @@ var Multipanel = {
 			} else {
 				_xMin = xMin;
 			}
+
 			if ( !xMax && xMax !== 0 ) {
 				_xMax = d3.max( data, function ( dataset ) {
 					return d3.max( dataset, function ( d ) {
@@ -226,8 +269,8 @@ var Multipanel = {
 			}
 			
 			xDomain = [ _xMin, _xMax ];
-			
 
+			// Compute the yDomain:
 			if ( !yMin && yMin !== 0 ) {
 				_yMin = d3.min( data, function ( dataset ) {
 					return d3.min( dataset, function ( d ) {
@@ -238,22 +281,22 @@ var Multipanel = {
 				_yMin = yMin;
 			}
 
+			// If no yMax specified, the yMax is set to the largest sum of counts: (this standardizes histograms for comparison assuming equal graph dimensions)
 			if ( !yMax && yMax !== 0 ) {
 				_yMax = d3.max( data, function ( dataset ) {
-					return d3.max( dataset, function ( d ) {
-						return d[ 1 ];
-					});
+					return dataset.reduce( function ( a, b ) {
+						return a + b[ 1 ];
+					}, 0);
 				});
 			} else {
 				_yMax = yMax;
 			}
 			
 			yDomain = [ _yMin, _yMax ];
-			
 
 			// Update the x-scale:
-			xScale.domain( xDomain )
-				.range( [ 0, width - padding.left - padding.right ] );
+			_xScale.domain( xDomain )
+				.range( [ 0, width-padding.left-padding.right ] );
 
 			// Update the y-scale:
 			yScale.domain( yDomain )
@@ -280,14 +323,14 @@ var Multipanel = {
 
 			_clipPath.append( 'svg:rect' )
 				.attr( 'class', 'clipPath' )
-				.attr( 'width', width - padding.left - padding.right )
+				.attr( 'width', width-padding.left-padding.right )
 				.attr( 'height', clipHeight );
 
 			// Create the meta element:
 			_meta = _canvas.append( 'svg:g' )
 				.attr( 'property', 'meta' )
 				.attr( 'class', 'meta' )
-				.attr( 'data-graph-type', 'multipanel-line' )
+				.attr( 'data-graph-type', 'multipanel-histogram' )
 				.attr( 'transform', 'translate(' + 0 + ',' + 0 + ')' );
 
 		} // end FUNCTION createBase()
@@ -298,9 +341,8 @@ var Multipanel = {
 			_graph = _canvas.append( 'svg:g' )
 				.attr( 'property', 'graph' )
 				.attr( 'class', 'graph' )
-				.attr( 'data-graph-type', 'multipanel-line' )
+				.attr( 'data-graph-type', 'multipanel-histogram' )
 				.attr( 'transform', 'translate(' + padding.left + ',' + top + ')' );
-
 
 		} // end FUNCTION createGraph()
 
@@ -315,24 +357,36 @@ var Multipanel = {
 
 		} // end FUNCTION createBackground()
 
-		function createPaths( data ) {
+		function createColumns( data ) {
 
-			// Create the marks group:
-			_marks = _graph.append( 'svg:g' )
+			// Create a marks group:
+			_marks = _graph.selectAll( '.marks' )
+				.data( data )
+			  .enter().append( 'svg:g' )
 				.attr( 'property', 'marks' )
 				.attr( 'class', 'marks' )
+				.attr( 'data-label', function( d, i ) { return labels[ i ]; })
 				.attr( 'clip-path', 'url(#' + _clipPath.attr( 'id' ) + ')' );
 
-			// Add paths:
-			_paths = _marks.selectAll( '.line' )
-				.data( data )
-			  .enter().append( 'svg:path' )
-				.attr( 'property', 'line' )
-				.attr( 'class', 'line' )
-				.attr( 'data-label', function ( d, i ) { return labels[ i ]; })
-				.attr( 'd', _line );
+			// Add columns:
+			_columns = _marks.selectAll( '.column' )
+				.data( function ( d ) { return d; })
+			  .enter().append( 'svg:rect' )
+				.attr( 'property', 'column' )
+				.attr( 'class', 'column' )
+				.attr( 'x', X )
+				.attr( 'y', Y )
+				.attr( 'width', Width )
+				.attr( 'height', Height );
 
-		} // end FUNCTION createPaths()
+			// Add tooltips:
+			_columns.append( 'svg:title' )
+				.attr( 'class', 'tooltip' )
+				.text( function ( d ) {
+					return Math.round( d[ 1 ] );
+				});
+
+		} // end FUNCTION createColumns()
 
 		function createXAxis( flg ) {
 
@@ -352,16 +406,13 @@ var Multipanel = {
 
 			if ( flg ) {
 				xAxis.append( 'svg:text' )
-					.attr( 'y', 50 )
+					.attr( 'y', 40 )
 					.attr( 'x', (width - padding.left - padding.right) / 2 )
 					.attr( 'text-anchor', 'middle' )
 					.attr( 'property', 'axis_label' )
 					.attr( 'class', 'label' )
 					.text( xLabel );
 			}
-
-			xAxis.selectAll( '.tick line' )
-				.attr( 'transform', 'translate(0,-6)' );
 
 			xAxis.selectAll( '.tick' )
 				.attr( 'property', 'axis_tick' );
@@ -379,7 +430,6 @@ var Multipanel = {
 				.attr( 'property', 'axis' )
 				.attr( 'class', 'y axis' )
 				.call( _yAxis );
-
 
 			yAxis.append( 'svg:text' )
 				.attr( 'transform', 'rotate(-90)' )
@@ -405,7 +455,7 @@ var Multipanel = {
 			yAxis.selectAll( '.domain' )
 				.attr( 'property', 'axis_domain' );
 
-		} // end FUNCTION createYAxis()
+		} // end FUNCTION createAxes()
 
 		function createTitle() {
 
@@ -423,12 +473,22 @@ var Multipanel = {
 
 		// x-accessor:
 		function X( d ) {
-			return xScale( d[ 0 ] );
+			return _xScale( d[ 0 ] );
 		}
 
 		// y-accessor:
 		function Y( d ) {
 			return yScale( d[ 1 ] );
+		}
+
+		// width-accessor:
+		function Width( d ) {
+			return _xScale( d[ 2 ] ) - _xScale( d[ 0 ] );
+		}
+
+		// height-accessor:
+		function Height( d ) {
+			return height-padding.top-padding.bottom - yScale( d[ 1 ] );
 		}
 
 
@@ -596,15 +656,15 @@ var Multipanel = {
 			}
 		};
 
-		// Set/Get: x
-		chart.x = function( value ) {
+		// Set/Get: value
+		chart.value = function( val ) {
 			var rules = 'function';
 
 			if ( !arguments.length ) {
-				return xValue;
+				return value;
 			}
 			
-			validate( value, rules, set );
+			validate( val, rules, set );
 
 			return chart;
 
@@ -613,28 +673,7 @@ var Multipanel = {
 					console.error( errors );
 					return;
 				}
-				xValue = value;
-			}
-		};
-
-		// Set/Get: y
-		chart.y = function( value ) {
-			var rules = 'function';
-
-			if ( !arguments.length ) {
-				return yValue;
-			}
-			
-			validate( value, rules, set );
-
-			return chart;
-
-			function set( errors ) {
-				if ( errors ) {
-					console.error( errors );
-					return;
-				}
-				yValue = value;
+				value = val;
 			}
 		};
 
@@ -732,51 +771,6 @@ var Multipanel = {
 			}
 		};
 
-		// Set/Get: interpolation
-		chart.interpolation = function( value ) {
-			// https://github.com/mbostock/d3/wiki/SVG-Shapes#wiki-line_interpolate
-			var rules = 'string|matches[linear, linear-closed, step, step-before, step-after, basis, basis-open, basis-closed, bundle, cardinal, cardinal-open, cardinal-closed, monotone]';
-
-			if ( !arguments.length ) {
-				return interpolation;
-			}
-
-			validate( value, rules, set );
-			
-			return chart;
-
-			function set( errors ) {
-				if ( errors ) {
-					console.error( errors );
-					return;
-				}
-				interpolation = value;
-				_line.interpolate( interpolation );
-			}
-		};
-
-		// Set/Get: xScale
-		chart.xScale = function( value ) {
-			var rules = 'function';
-
-			if ( !arguments.length ) {
-				return xScale;
-			}
-
-			validate( value, rules, set );
-			
-			return chart;
-
-			function set( errors ) {
-				if ( errors ) {
-					console.error( errors );
-					return;
-				}
-				xScale = value;
-				_xAxis.scale( xScale );
-			}
-		};
-
 		// Set/Get: yScale
 		chart.yScale = function( value ) {
 			var rules = 'function';
@@ -806,11 +800,11 @@ var Multipanel = {
 			if ( !arguments.length ) {
 				return xMin;
 			}
-
+			
 			if ( !_.isUndefined( value ) && !_.isNull( value ) ) {
 				validate( value, rules, set );
 			}
-			
+
 			return chart;
 
 			function set( errors ) {
@@ -935,6 +929,27 @@ var Multipanel = {
 			}
 		};
 
+		// Set/Get: columnPadding
+		chart.columnPadding = function( value ) {
+			var rules = 'number';
+
+			if ( !arguments.length ) {
+				return columnPadding;
+			}
+			
+			validate( value, rules, set );
+
+			return chart;
+
+			function set( errors ) {
+				if ( errors ) {
+					console.error( errors );
+					return;
+				}
+				columnPadding = value;
+			}
+		};
+
 		// Set/Get: title
 		chart.title = function ( value ) {
 			var rules = 'string';
@@ -977,6 +992,27 @@ var Multipanel = {
 			}
 		};
 
+		// Set/Get: edges
+		chart.edges = function ( value ) {
+			var rules = 'array';
+
+			if ( !arguments.length ) {
+				return edges;
+			}
+			
+			validate( value, rules, set );
+
+			return chart;
+
+			function set( errors ) {
+				if ( errors ) {
+					console.error( errors );
+					return;
+				}
+				edges = value;
+			}
+		};
+
 		return chart;
 
 	};
@@ -984,6 +1020,6 @@ var Multipanel = {
 
 	// EXPORTS //
 
-	Multipanel.line = Chart;
+	Multipanel.histogram = Chart;
 
-})( d3, Validator );
+})( d3, histc, Validator );
