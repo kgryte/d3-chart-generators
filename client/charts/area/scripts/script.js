@@ -30,6 +30,7 @@
 		.yMin( 0 )
 		.x( function ( d ) { return d[ 0 ]; })
 		.y( function ( d ) { return d[ 1 ]; })
+		.interpolation( 'basis' )
 		.labels( [ 'area 1', 'area 2', 'area 3' ] )
 		.title( 'Area Chart' );
 

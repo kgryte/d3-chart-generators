@@ -687,7 +687,7 @@ var Area;
 		// Set/Get: interpolation
 		chart.interpolation = function( value ) {
 			// https://github.com/mbostock/d3/wiki/SVG-Shapes#wiki-line_interpolate
-			var rules = 'string|matches[linear, linear-closed, step, step-before, step-after, basis, basis-open, basis-closed, bundle, cardinal, cardinal-open, cardinal-closed, monotone]';
+			var rules = 'string|matches[linear,linear-closed,step,step-before,step-after,basis,basis-open,basis-closed,bundle,cardinal,cardinal-open,cardinal-closed,monotone]';
 
 			if ( !arguments.length ) {
 				return interpolation;
