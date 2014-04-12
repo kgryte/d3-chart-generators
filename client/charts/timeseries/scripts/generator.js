@@ -90,13 +90,23 @@ var Timeseries;
 			xAxisOrient = 'bottom',
 			yAxisOrient = 'left',
 
-			_xAxis = d3.svg.axis().scale( xScale ).orient( xAxisOrient ).tickFormat( xTickFormat ).ticks( xNumTicks ),
-			_yAxis = d3.svg.axis().scale( yScale ).orient( yAxisOrient ).ticks( yNumTicks ),
+			_xAxis = d3.svg.axis()
+				.scale( xScale )
+				.orient( xAxisOrient )
+				.tickFormat( xTickFormat )
+				.ticks( xNumTicks ),
+			_yAxis = d3.svg.axis()
+				.scale( yScale )
+				.orient( yAxisOrient )
+				.ticks( yNumTicks ),
 
 			// PATHS:
 			interpolation = 'linear',
 
-			_line = d3.svg.line().x( X ).y( Y ).interpolate( interpolation ),
+			_line = d3.svg.line()
+				.x( X )
+				.y( Y )
+				.interpolate( interpolation ),
 
 			// ACCESSORS:
 			xValue = function( d ) { return d[ 0 ]; },
@@ -288,49 +298,47 @@ var Timeseries;
 
 		function createAxes() {
 
-			_graph.append( 'svg:g' )
+			var xAxis, yAxis;
+
+			xAxis = _graph.append( 'svg:g' )
 				.attr( 'property', 'axis' )
 				.attr( 'class', 'x axis' )
 				.attr( 'transform', 'translate(0,' + (yScale.range()[0]) + ')' )
 				.call( _xAxis );
 
-			_graph.select( '.x.axis' )
-				.append( 'svg:text' )
-					.attr( 'y', 40 )
-					.attr( 'x', (width - padding.left - padding.right) / 2 )
-					.attr( 'text-anchor', 'middle' )
-					.attr( 'property', 'axis_label' )
-					.attr( 'class', 'label' )
-					.text( xLabel );
+			xAxis.append( 'svg:text' )
+				.attr( 'y', 40 )
+				.attr( 'x', (width - padding.left - padding.right) / 2 )
+				.attr( 'text-anchor', 'middle' )
+				.attr( 'property', 'axis_label' )
+				.attr( 'class', 'label' )
+				.text( xLabel );
 
-			_graph.select( '.x.axis' )
-				.selectAll( '.tick' )
-					.attr( 'property', 'axis_tick' );
+			xAxis.selectAll( '.tick' )
+				.attr( 'property', 'axis_tick' );
 
-			_graph.select( '.x.axis' )
-				.selectAll( '.domain' )
-					.attr( 'property', 'axis_domain' );
+			xAxis.selectAll( '.domain' )
+				.attr( 'property', 'axis_domain' );
 
-			_graph.append( 'svg:g' )
+			yAxis = _graph.append( 'svg:g' )
 				.attr( 'property', 'axis' )
 				.attr( 'class', 'y axis' )
-				.call( _yAxis )
-					.append( 'svg:text' )
-						.attr( 'transform', 'rotate(-90)' )
-						.attr( 'y', -72 )
-						.attr( 'x', -yScale.range()[0] / 2 )
-						.attr( 'text-anchor', 'middle' )
-						.attr( 'property', 'axis_label' )
-						.attr( 'class', 'label' )
-						.text( yLabel );
+				.call( _yAxis );
 
-			_graph.select( '.y.axis' )
-				.selectAll( '.tick' )
-					.attr( 'property', 'axis_tick' );
+			yAxis.append( 'svg:text' )
+				.attr( 'transform', 'rotate(-90)' )
+				.attr( 'y', -72 )
+				.attr( 'x', -yScale.range()[0] / 2 )
+				.attr( 'text-anchor', 'middle' )
+				.attr( 'property', 'axis_label' )
+				.attr( 'class', 'label' )
+				.text( yLabel );
 
-			_graph.select( '.y.axis' )
-				.selectAll( '.domain' )
-					.attr( 'property', 'axis_domain' );
+			yAxis.selectAll( '.tick' )
+				.attr( 'property', 'axis_tick' );
+
+			yAxis.selectAll( '.domain' )
+				.attr( 'property', 'axis_domain' );
 
 		} // end FUNCTION createAxes()
 

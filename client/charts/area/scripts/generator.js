@@ -1,6 +1,6 @@
 /**
 *
-*	CHART: line
+*	CHART: area
 *
 *
 *
@@ -21,7 +21,7 @@
 *
 *
 *	HISTORY:
-*		- 2014/04/06: Created. [AReines].
+*		- 2014/04/12: Created. [AReines].
 *
 *
 *	DEPENDENCIES:
@@ -40,19 +40,19 @@
 *
 */
 
-var Line;
+var Area;
 
 (function ( d3, validate ) {
 	'use strict';
 
 	// VARIABLES //
 
-	var line;
+	var area;
 
 
-	// LINE //
+	// AREA //
 
-	line = function() {
+	area = function() {
 
 		// PRIVATE: VARIABLES //
 
@@ -100,9 +100,15 @@ var Line;
 			// PATHS:
 			interpolation = 'linear',
 
-			_line = d3.svg.line()
+			_line = d3.svg.area()
 				.x( X )
-				.y( Y )
+				.y( Y1 )
+				.interpolate( interpolation ),
+
+			_area = d3.svg.area()
+				.x( X )
+				.y0( Y0 )
+				.y1( Y1 )
 				.interpolate( interpolation ),
 
 			// ACCESSORS:
@@ -110,7 +116,7 @@ var Line;
 			yValue = function( d ) { return d[ 1 ]; },
 
 			// ELEMENTS:
-			_canvas, _clipPath, _graph, _meta, _title, _background, _marks, _paths;
+			_canvas, _clipPath, _graph, _meta, _title, _background, _marks, _lines, _areas;
 
 
 		// PUBLIC: OBJECT //
@@ -251,14 +257,14 @@ var Line;
 			_graph = _canvas.append( 'svg:g' )
 				.attr( 'property', 'graph' )
 				.attr( 'class', 'graph' )
-				.attr( 'data-graph-type', 'line' )
+				.attr( 'data-graph-type', 'area' )
 				.attr( 'transform', 'translate(' + padding.left + ',' + padding.top + ')' );
 
 			// Create the meta element:
 			_meta = _canvas.append( 'svg:g' )
 				.attr( 'property', 'meta' )
 				.attr( 'class', 'meta' )
-				.attr( 'data-graph-type', 'line' )
+				.attr( 'data-graph-type', 'area' )
 				.attr( 'transform', 'translate(' + 0 + ',' + 0 + ')' );
 
 		} // end FUNCTION createBase()
@@ -282,8 +288,17 @@ var Line;
 				.attr( 'class', 'marks' )
 				.attr( 'clip-path', 'url(#' + _clipPath.attr( 'id' ) + ')' );
 
-			// Add paths:
-			_paths = _marks.selectAll( '.line' )
+			// Add areas:
+			_areas = _marks.selectAll( '.area' )
+				.data( data )
+			  .enter().append( 'svg:path' )
+				.attr( 'property', 'area' )
+				.attr( 'class', 'area' )
+				.attr( 'data-label', function ( d, i ) { return labels[ i ]; })
+				.attr( 'd', _area );
+
+			// Add lines:
+			_lines = _marks.selectAll( '.line' )
 				.data( data )
 			  .enter().append( 'svg:path' )
 				.attr( 'property', 'line' )
@@ -358,9 +373,14 @@ var Line;
 			return xScale( d[ 0 ] );
 		}
 
-		// y-accessor:
-		function Y( d ) {
-			return yScale( d[ 1 ] );
+		// y0-accessor:
+		function Y0( d ) {
+			return yScale( 0 );
+		}
+
+		// y1-accessor:
+		function Y1( d ) {
+			return yScale( 0 + d[ 1 ] );
 		}
 
 
@@ -916,6 +936,6 @@ var Line;
 
 	// EXPORTS //
 
-	Line = line;
+	Area = area;
 
 })( d3, Validator );

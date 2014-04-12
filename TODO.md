@@ -4,13 +4,14 @@ TODO
 ### General
 
 1. 	Ability to overlay different plot types (e.g., line atop a histogram)
-2. 	
+2. 	Add dirmapper to data directories
+3. 	Move to prototypes (?)
 
 
 ### Generators
 
-1. 	Multi-panel Histogram
-2. 	Small multiples
+1. 	
+2. 	Small multiples: timeseries histogram, contour, histogram
 3. 	Area chart
 4. 	2D contour plot
 
@@ -32,7 +33,7 @@ TODO
 
 ### Organization
 
-1. 	Place generators in a 'charts' directory
+1. 	
 
 
  	
