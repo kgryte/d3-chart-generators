@@ -172,12 +172,10 @@ var Multipanel = {
 					// Create the y-axis:
 					createYAxis( yticks );
 
-					// Only create a title for the top panel:
-					if ( i === 0 ) {
-						createTitle();
-					}
-
 				} // end FOR i
+
+				// Create the title:
+				createTitle();
 
 			});
 

@@ -10,10 +10,14 @@ TODO
 
 ### Generators
 
-1. 	
+1. 	2D contour plot
 2. 	Small multiples: timeseries histogram, contour, histogram
 3. 	
-4. 	2D contour plot
+4. 	
+
+### Data
+
+1. 	Update timeseries data such that x values are time values
 
 
 ### Layout
@@ -24,6 +28,7 @@ TODO
 ### Documentation
 
 1. 	Use JSdoc.
+2. 	Update generator dependencies
 
 
 ### Bugs
