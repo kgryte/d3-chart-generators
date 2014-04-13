@@ -12,7 +12,7 @@ TODO
 
 1. 	
 2. 	Small multiples: timeseries histogram, contour, histogram
-3. 	Area chart
+3. 	
 4. 	2D contour plot
 
 
