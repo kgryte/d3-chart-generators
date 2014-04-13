@@ -26,7 +26,7 @@
 		.width( width )
 		.height( height )
 		.xLabel( 'value' )
-		.yLabel( 'count' )
+		.yLabel( 'counts' )
 		.xMin( 0 )
 		.xMax( 1 )
 		.yMin( 0 )
