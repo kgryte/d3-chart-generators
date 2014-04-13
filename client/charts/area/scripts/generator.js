@@ -100,11 +100,6 @@ var Area;
 			// PATHS:
 			interpolation = 'linear',
 
-			_line = d3.svg.area()
-				.x( X )
-				.y( Y1 )
-				.interpolate( interpolation ),
-
 			_area = d3.svg.area()
 				.x( X )
 				.y0( Y0 )
@@ -116,7 +111,7 @@ var Area;
 			yValue = function( d ) { return d[ 1 ]; },
 
 			// ELEMENTS:
-			_canvas, _clipPath, _graph, _meta, _title, _background, _marks, _lines, _areas;
+			_canvas, _clipPath, _graph, _meta, _title, _background, _marks, _paths;
 
 
 		// PUBLIC: OBJECT //
@@ -289,22 +284,13 @@ var Area;
 				.attr( 'clip-path', 'url(#' + _clipPath.attr( 'id' ) + ')' );
 
 			// Add areas:
-			_areas = _marks.selectAll( '.area' )
+			_paths = _marks.selectAll( '.area' )
 				.data( data )
 			  .enter().append( 'svg:path' )
 				.attr( 'property', 'area' )
 				.attr( 'class', 'area' )
 				.attr( 'data-label', function ( d, i ) { return labels[ i ]; })
 				.attr( 'd', _area );
-
-			// Add lines:
-			_lines = _marks.selectAll( '.line' )
-				.data( data )
-			  .enter().append( 'svg:path' )
-				.attr( 'property', 'line' )
-				.attr( 'class', 'line' )
-				.attr( 'data-label', function ( d, i ) { return labels[ i ]; })
-				.attr( 'd', _line );
 
 		} // end FUNCTION createPaths()
 
@@ -703,7 +689,7 @@ var Area;
 					return;
 				}
 				interpolation = value;
-				_line.interpolate( interpolation );
+				_area.interpolate( interpolation );
 			}
 		};
 

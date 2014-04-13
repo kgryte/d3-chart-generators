@@ -25,13 +25,15 @@
 	area
 		.width( width )
 		.height( height )
-		.xLabel( 'time [sec]' )
-		.yLabel( 'intensity [au]' )
+		.xLabel( 'value' )
+		.yLabel( 'count' )
+		.xMin( 0 )
+		.xMax( 1 )
 		.yMin( 0 )
 		.x( function ( d ) { return d[ 0 ]; })
 		.y( function ( d ) { return d[ 1 ]; })
 		.interpolation( 'basis' )
-		.labels( [ 'area 1', 'area 2', 'area 3' ] )
+		.labels( [ 'area 0' ] )
 		.title( 'Area Chart' );
 
 	// Bind data to the chart and generate the area chart...
@@ -50,7 +52,7 @@
 				return console.error( error );
 			}
 			d3.select( '.chart' )
-				.datum( formatData( data ) )
+				.datum( data )
 				.call( area );
 		});
 
@@ -58,33 +60,10 @@
 
 
 	/**
-	* FUNCTION: formatData( data )
-	*	Takes a key-value data store and formats the data as an array of arrays.
-	*
-	* @param {array} data - array of objects
-	*
-	* @returns {array} array of arrays
-	*/
-	function formatData( data ) {
-
-		var _dat = [];
-
-		for ( var i = 0; i < data[ 0 ].y.length; i++ ) {
-			_dat.push( [] );
-			for ( var j = 0; j < data.length; j++ ){
-				_dat[ i ].push( [ data[ j ].x, data[ j ].y[ i ] ] );
-			} // end FOR j
-		} // end FOR i
-
-		return _dat;
-
-	} // end FUNCTION formatData()
-
-	/**
 	* FUNCTION: simulate()
-	*	Simulate line chart data.
+	*	Simulate area chart data.
 	*
-	* @returns {array} array of arrays, in which each array is a separate line.
+	* @returns {array} array of arrays, in which each array is a separate dataset.
 	*/
 	function simulate() {
 
@@ -95,7 +74,7 @@
 			start = 0;
 
 		data[0] = [];
-		for ( var i = 0; i < seriesLenght; i++ ) {
+		for ( var i = 0; i < seriesLength; i++ ) {
 			data[0].push(
 				[
 					start + i*increment,

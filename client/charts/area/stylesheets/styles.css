@@ -46,41 +46,10 @@ body {
 	stroke: none;
 }
 
-.graph[data-graph-type="area"] .line {
-	fill: none;
-	stroke: #474747;
-	stroke-width: 2px;
-	stroke-opacity: 90%;
-}
-
-.graph[data-graph-type="area"] .line[data-label="area 1"] {
-	stroke: #00dd00;
-}
-
-.graph[data-graph-type="area"] .line[data-label="area 2"] {
-	stroke: #ff0000;
-}
-
-.graph[data-graph-type="area"] .line[data-label="area 3"] {
-	stroke: #474747;
-}
-
 .graph[data-graph-type="area"] .area {
-	fill: none;
-	stroke: none;
-	fill-opacity: 0.125;
-}
-
-.graph[data-graph-type="area"] .area[data-label="area 1"] {
-	fill: #00dd00;
-}
-
-.graph[data-graph-type="area"] .area[data-label="area 2"] {
-	fill: #ff0000;
-}
-
-.graph[data-graph-type="area"] .area[data-label="area 3"] {
 	fill: #474747;
+	stroke: none;
+	fill-opacity: 1;
 }
 
 .meta[data-graph-type="area"] .title {
